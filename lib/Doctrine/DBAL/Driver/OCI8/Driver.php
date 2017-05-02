@@ -21,6 +21,9 @@ namespace Doctrine\DBAL\Driver\OCI8;
 
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Driver\AbstractOracleDriver;
+use Doctrine\DBAL\Platforms\Oracle121Platform;
+use Doctrine\DBAL\Schema\Oracle121SchemaManager;
+use Doctrine\DBAL\Schema\OracleSchemaManager;
 
 /**
  * A Doctrine DBAL driver for the Oracle OCI8 PHP extensions.
@@ -68,4 +71,20 @@ class Driver extends AbstractOracleDriver
     {
         return 'oci8';
     }
+    
+    /**
+     * Uses a special Oracle121SchemaManager for versions >= 12.1
+     *
+     * @param \Doctrine\DBAL\Connection $conn
+     * @return Oracle121SchemaManager|OracleSchemaManager
+     */
+    public function getSchemaManager(\Doctrine\DBAL\Connection $conn)
+    {
+        $platform = $conn->getDatabasePlatform();
+        if ($platform instanceof Oracle121Platform) {
+            return new Oracle121SchemaManager($conn);
+        }
+        return new OracleSchemaManager($conn);
+    }
+
 }
