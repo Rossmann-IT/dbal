@@ -71,7 +71,7 @@ class Driver extends AbstractOracleDriver
     {
         return 'oci8';
     }
-    
+
     /**
      * Uses a special Oracle121SchemaManager for versions >= 12.1
      *
