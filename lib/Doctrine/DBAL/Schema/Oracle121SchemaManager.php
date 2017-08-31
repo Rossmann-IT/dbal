@@ -77,12 +77,18 @@ class Oracle121SchemaManager extends OracleSchemaManager
         }
 
         if (null !== $tableColumn['data_default']) {
-            // Default values returned from database are enclosed in single quotes.
-            //$tableColumn['data_default'] = trim($tableColumn['data_default'], "'");
-            /**
-             * the trim above leads to problems with the expression SYSTIMESTAMP AT TIME ZONE 'UTC'
-             */
             $tableColumn['data_default'] = trim($tableColumn['data_default']);
+            /**
+             * default value for a string looks like this: 'open'
+             * default value for an expression looks like this: SYSTIMESTAMP AT TIME ZONE 'UTC'
+             * we only want to get rid of the outer single quotes in strings, not in expressions
+             */
+            $hasLeftQuote = substr($tableColumn['data_default'], 0, 1) === "'";
+            $hasRightQuote = substr($tableColumn['data_default'], -1) === "'";
+
+            if ($hasLeftQuote && $hasRightQuote) {
+                $tableColumn['data_default'] = trim($tableColumn['data_default'], "'");
+            }
         }
 
         if (!empty($tableColumn['data_default']) && $tableColumn['identity_column'] === 'YES') {
@@ -100,11 +106,7 @@ class Oracle121SchemaManager extends OracleSchemaManager
             case 'number':
                 $precision = $tableColumn['data_precision'];
                 $scale = $tableColumn['data_scale'];
-                if ($tableColumn['data_precision'] == 1 && $tableColumn['data_scale'] == 0) {
-                    $type = 'boolean';
-                } else {
-                    $type = 'decimal';
-                }
+                $type = 'decimal';
                 $length = null;
                 break;
             case 'pls_integer':
