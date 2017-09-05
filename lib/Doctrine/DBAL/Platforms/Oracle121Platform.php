@@ -265,7 +265,7 @@ class Oracle121Platform extends OraclePlatform {
      */
     public function getIndexFieldDeclarationListWithOptionsSQL(array $fields, array $options)
     {
-        $ret = array();
+        $ret = [];
 
         foreach ($fields as $field => $definition) {
             if (is_array($definition)) {

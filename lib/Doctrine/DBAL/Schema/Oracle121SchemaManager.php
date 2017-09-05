@@ -159,7 +159,7 @@ class Oracle121SchemaManager extends OracleSchemaManager
                 $length = null;
         }
 
-        $options = array(
+        $options = [
             'notnull'    => (bool) ($tableColumn['nullable'] === 'N'),
             'fixed'      => (bool) $fixed,
             'unsigned'   => (bool) $unsigned,
@@ -171,8 +171,8 @@ class Oracle121SchemaManager extends OracleSchemaManager
             'comment'    => isset($tableColumn['comments']) && '' !== $tableColumn['comments']
                 ? $tableColumn['comments']
                 : null,
-            'platformDetails' => array(),
-        );
+            'platformDetails' => [],
+        ];
 
         return new Column($this->getQuotedIdentifierName($tableColumn['column_name']), Type::getType($type), $options);
     }
@@ -187,7 +187,7 @@ class Oracle121SchemaManager extends OracleSchemaManager
      */
     protected function _getPortableTableIndexesList($tableIndexes, $tableName=null)
     {
-        $indexBuffer = array();
+        $indexBuffer = [];
         $indexPosition = 0;
         $deleteBuffer = [];
         $caseBuffer = [];
@@ -356,7 +356,7 @@ class Oracle121SchemaManager extends OracleSchemaManager
         $tablesColumns = $this->listTablesColumns($database);
 
         // Get all foreign keys in one database call
-        $tablesForeignKeys = array();
+        $tablesForeignKeys = [];
         if ($this->_platform->supportsForeignKeyConstraints()) {
             $tablesForeignKeys = $this->listTablesForeignKeys($database);
         }
@@ -364,7 +364,7 @@ class Oracle121SchemaManager extends OracleSchemaManager
         // Get all indexes in one database call
         $tablesIndexes = $this->listTablesIndexes($database);
 
-        $tables = array();
+        $tables = [];
         foreach ($tableNames as $tableName) {
             $tableName = $this->_conn->quoteIdentifier($tableName);
 
@@ -372,24 +372,24 @@ class Oracle121SchemaManager extends OracleSchemaManager
             if (array_key_exists($tableName, $tablesColumns)) {
                 $columns = $tablesColumns[$tableName];
             } else {
-                $columns = array();
+                $columns = [];
             }
 
             // Get the foreign keys list from the dictionnary that contains all foreign keys for the current database
             if (array_key_exists($tableName, $tablesForeignKeys)) {
                 $foreignKeys = $tablesForeignKeys[$tableName];
             } else {
-                $foreignKeys = array();
+                $foreignKeys = [];
             }
 
             // Get the index list from the dictionnary that contains all indexes for the current database
             if (array_key_exists($tableName, $tablesIndexes)) {
                 $indexes = $tablesIndexes[$tableName];
             } else {
-                $indexes = array();
+                $indexes = [];
             }
 
-            $tables[] = new Table($tableName, $columns, $indexes, $foreignKeys, false, array());
+            $tables[] = new Table($tableName, $columns, $indexes, $foreignKeys, false, []);
         }
 
         return $tables;
@@ -403,18 +403,18 @@ class Oracle121SchemaManager extends OracleSchemaManager
         $sql = $this->_platform->getListTablesColumnsSQL($database);
         $tablesColumnsRows = $this->_conn->fetchAll($sql);
 
-        $tablesColumns = array();
+        $tablesColumns = [];
         foreach ($tablesColumnsRows as $columnRow) {
             $columnRow = \array_change_key_case($columnRow, CASE_LOWER);
 
             if (!array_key_exists($columnRow['table_name'], $tablesColumns)) {
-                $tablesColumns[$columnRow['table_name']] = array($columnRow);
+                $tablesColumns[$columnRow['table_name']] = [$columnRow];
             } else {
                 $tablesColumns[$columnRow['table_name']][] = $columnRow;
             }
         }
 
-        $portableTablesColumns = array();
+        $portableTablesColumns = [];
         foreach ($tablesColumns as $tableName => $tableColumns) {
             // Standardfunktion
             $portableTablesColumns[$this->_conn->quoteIdentifier($tableName)] =
@@ -433,18 +433,18 @@ class Oracle121SchemaManager extends OracleSchemaManager
         $sql = $this->_platform->getListTablesForeignKeysSQL($database);
         $tablesForeignKeysRows = $this->_conn->fetchAll($sql);
 
-        $tablesForeignKeys = array();
+        $tablesForeignKeys = [];
         foreach ($tablesForeignKeysRows as $foreignKeyRow) {
             $foreignKeyRow = \array_change_key_case($foreignKeyRow, CASE_LOWER);
 
             if (!array_key_exists($foreignKeyRow['table_name'], $tablesForeignKeys)) {
-                $tablesForeignKeys[$foreignKeyRow['table_name']] = array($foreignKeyRow);
+                $tablesForeignKeys[$foreignKeyRow['table_name']] = [$foreignKeyRow];
             } else {
                 $tablesForeignKeys[$foreignKeyRow['table_name']][] = $foreignKeyRow;
             }
         }
 
-        $portableTablesForeignKeys = array();
+        $portableTablesForeignKeys = [];
         foreach ($tablesForeignKeys as $tableName => $tableForeignKeys) {
             $portableTablesForeignKeys[$this->_conn->quoteIdentifier($tableName)] =
                 $this->_getPortableTableForeignKeysList($tableForeignKeys);
@@ -461,18 +461,18 @@ class Oracle121SchemaManager extends OracleSchemaManager
         $sql = $this->_platform->getListTablesIndexesSQL($database);
         $tablesIndexesRows = $this->_conn->fetchAll($sql);
 
-        $tablesIndexes = array();
+        $tablesIndexes = [];
         foreach ($tablesIndexesRows as $indexRow) {
             $indexRow = \array_change_key_case($indexRow, CASE_LOWER);
 
             if (!array_key_exists($indexRow['table_name'], $tablesIndexes)) {
-                $tablesIndexes[$indexRow['table_name']] = array($indexRow);
+                $tablesIndexes[$indexRow['table_name']] = [$indexRow];
             } else {
                 $tablesIndexes[$indexRow['table_name']][] = $indexRow;
             }
         }
 
-        $portableTablesIndexes = array();
+        $portableTablesIndexes = [];
         foreach ($tablesIndexes as $tableName => $tableIndexes) {
             $portableTablesIndexes[$this->_conn->quoteIdentifier($tableName)] =
                 $this->_getPortableTableIndexesList($tableIndexes, $tableName);
