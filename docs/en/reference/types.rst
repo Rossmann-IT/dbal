@@ -248,6 +248,17 @@ without time and timezone information, you should consider using this type.
 Values retrieved from the database are always converted to PHP's ``\DateTime`` object
 or ``null`` if no data is present.
 
+date_immutable
+^^^^^^^^^^^^^^
+
+The immutable variant of the ``date`` type.
+Values retrieved from the database are always converted to PHP's ``\DateTimeImmutable``
+object or ``null`` if no data is present.
+
+.. note::
+
+    Available since version ``2.6``.
+
 datetime
 ^^^^^^^^
 
@@ -271,6 +282,17 @@ or ``null`` if no data is present.
     and not parsed correctly by ``date_create()``, however since
     databases are rather strict on dates there should be no problem.
 
+datetime_immutable
+^^^^^^^^^^^^^^^^^^
+
+The immutable variant of the ``datetime`` type.
+Values retrieved from the database are always converted to PHP's ``\DateTimeImmutable``
+object or ``null`` if no data is present.
+
+.. note::
+
+    Available since version ``2.6``.
+
 datetimetz
 ^^^^^^^^^^
 
@@ -280,6 +302,17 @@ information, you should consider using this type.
 Values retrieved from the database are always converted to PHP's ``\DateTime`` object
 or ``null`` if no data is present.
 
+datetimetz_immutable
+^^^^^^^^^^^^^^^^^^^^
+
+The immutable variant of the ``datetimetz`` type.
+Values retrieved from the database are always converted to PHP's ``\DateTimeImmutable``
+object or ``null`` if no data is present.
+
+.. note::
+
+    Available since version ``2.6``.
+
 time
 ^^^^
 
@@ -288,6 +321,17 @@ If you know that the data to be stored only needs to be a time
 without date, time and timezone information, you should consider using this type.
 Values retrieved from the database are always converted to PHP's ``\DateTime`` object
 or ``null`` if no data is present.
+
+time_immutable
+^^^^^^^^^^^^^^
+
+The immutable variant of the ``time`` type.
+Values retrieved from the database are always converted to PHP's ``\DateTimeImmutable``
+object or ``null`` if no data is present.
+
+.. note::
+
+    Available since version ``2.6``.
 
 dateinterval
 ^^^^^^^^^^^^
@@ -334,7 +378,7 @@ using deserialization or ``null`` if no data is present.
     This type will always be mapped to the database vendor's ``text`` type
     internally as there is no way of storing a PHP array representation
     natively in the database.
-    Furthermore this type requires a SQL column comment hint so that it can be
+    Furthermore this type requires an SQL column comment hint so that it can be
     reverse engineered from the database. Doctrine cannot map back this type
     properly on vendors not supporting column comments and will fall back to
     ``text`` type instead.
@@ -354,7 +398,7 @@ using comma delimited ``explode()`` or ``null`` if no data is present.
     This type will always be mapped to the database vendor's ``text`` type
     internally as there is no way of storing a PHP array representation
     natively in the database.
-    Furthermore this type requires a SQL column comment hint so that it can be
+    Furthermore this type requires an SQL column comment hint so that it can be
     reverse engineered from the database. Doctrine cannot map back this type
     properly on vendors not supporting column comments and will fall back to
     ``text`` type instead.
@@ -374,7 +418,7 @@ json
 Maps and converts array data based on PHP's JSON encoding functions.
 If you know that the data to be stored always is in a valid UTF-8
 encoded JSON format string, you should consider using this type.
-Values retrieved from the database are always converted to PHP's ``array`` or 
+Values retrieved from the database are always converted to PHP's ``array`` or
 ``null`` types using PHP's ``json_decode()`` function.
 
 .. note::
@@ -382,7 +426,7 @@ Values retrieved from the database are always converted to PHP's ``array`` or
     Some vendors have a native JSON type and Doctrine will use it if possible
     and otherwise silently fall back to the vendor's ``text`` type to ensure
     the most efficient storage requirements.
-    If the vendor does not have a native JSON type, this type requires a SQL
+    If the vendor does not have a native JSON type, this type requires an SQL
     column comment hint so that it can be reverse engineered from the database.
     Doctrine cannot map back this type properly on vendors not supporting column
     comments and will fall back to ``text`` type instead.
@@ -405,7 +449,7 @@ using PHP's ``json_decode()`` function.
     Some vendors have a native JSON type and Doctrine will use it if possible
     and otherwise silently fall back to the vendor's ``text`` type to ensure
     the most efficient storage requirements.
-    If the vendor does not have a native JSON type, this type requires a SQL
+    If the vendor does not have a native JSON type, this type requires an SQL
     column comment hint so that it can be reverse engineered from the database.
     Doctrine cannot map back this type properly on vendors not supporting column
     comments and will fall back to ``text`` type instead.
@@ -430,7 +474,7 @@ using deserialization or ``null`` if no data is present.
     This type will always be mapped to the database vendor's ``text`` type
     internally as there is no way of storing a PHP object representation
     natively in the database.
-    Furthermore this type requires a SQL column comment hint so that it can be
+    Furthermore this type requires an SQL column comment hint so that it can be
     reverse engineered from the database. Doctrine cannot map back this type
     properly on vendors not supporting column comments and will fall back to
     ``text`` type instead.

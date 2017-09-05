@@ -2,12 +2,19 @@
 
 namespace Doctrine\Tests\DBAL;
 
+use Doctrine\Common\Cache\Cache;
 use Doctrine\Common\EventManager;
+use Doctrine\DBAL\Cache\QueryCacheProfile;
 use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\DBALException;
+use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Events;
+use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\Tests\Mocks\DriverConnectionMock;
 use Doctrine\Tests\Mocks\DriverMock;
+use Doctrine\DBAL\Cache\ArrayStatement;
+use Doctrine\Tests\Mocks\VersionAwarePlatformDriverMock;
 
 class ConnectionTest extends \Doctrine\Tests\DbalTestCase
 {
@@ -27,6 +34,22 @@ class ConnectionTest extends \Doctrine\Tests\DbalTestCase
     protected function setUp()
     {
         $this->_conn = \Doctrine\DBAL\DriverManager::getConnection($this->params);
+    }
+
+    public function getExecuteUpdateMockConnection()
+    {
+        $driverMock = $this->createMock(\Doctrine\DBAL\Driver::class);
+
+        $driverMock->expects($this->any())
+            ->method('connect')
+            ->will($this->returnValue(new DriverConnectionMock()));
+
+        $conn = $this->getMockBuilder(Connection::class)
+            ->setMethods(['executeUpdate'])
+            ->setConstructorArgs([['platform' => new Mocks\MockPlatform()], $driverMock])
+            ->getMock();
+
+        return $conn;
     }
 
     public function testIsConnected()
@@ -280,16 +303,7 @@ class ConnectionTest extends \Doctrine\Tests\DbalTestCase
 
     public function testEmptyInsert()
     {
-        $driverMock = $this->createMock('Doctrine\DBAL\Driver');
-
-        $driverMock->expects($this->any())
-            ->method('connect')
-            ->will($this->returnValue(new DriverConnectionMock()));
-
-        $conn = $this->getMockBuilder('Doctrine\DBAL\Connection')
-            ->setMethods(array('executeUpdate'))
-            ->setConstructorArgs(array(array('platform' => new Mocks\MockPlatform()), $driverMock))
-            ->getMock();
+        $conn = $this->getExecuteUpdateMockConnection();
 
         $conn->expects($this->once())
             ->method('executeUpdate')
@@ -303,16 +317,7 @@ class ConnectionTest extends \Doctrine\Tests\DbalTestCase
      */
     public function testUpdateWithDifferentColumnsInDataAndIdentifiers()
     {
-        $driverMock = $this->createMock('Doctrine\DBAL\Driver');
-
-        $driverMock->expects($this->any())
-            ->method('connect')
-            ->will($this->returnValue(new DriverConnectionMock()));
-
-        $conn = $this->getMockBuilder('Doctrine\DBAL\Connection')
-            ->setMethods(array('executeUpdate'))
-            ->setConstructorArgs(array(array('platform' => new Mocks\MockPlatform()), $driverMock))
-            ->getMock();
+        $conn = $this->getExecuteUpdateMockConnection();
 
         $conn->expects($this->once())
             ->method('executeUpdate')
@@ -356,16 +361,7 @@ class ConnectionTest extends \Doctrine\Tests\DbalTestCase
      */
     public function testUpdateWithSameColumnInDataAndIdentifiers()
     {
-        $driverMock = $this->createMock('Doctrine\DBAL\Driver');
-
-        $driverMock->expects($this->any())
-            ->method('connect')
-            ->will($this->returnValue(new DriverConnectionMock()));
-
-        $conn = $this->getMockBuilder('Doctrine\DBAL\Connection')
-            ->setMethods(array('executeUpdate'))
-            ->setConstructorArgs(array(array('platform' => new Mocks\MockPlatform()), $driverMock))
-            ->getMock();
+        $conn = $this->getExecuteUpdateMockConnection();
 
         $conn->expects($this->once())
             ->method('executeUpdate')
@@ -399,6 +395,80 @@ class ConnectionTest extends \Doctrine\Tests\DbalTestCase
                 'text' => 'string',
                 'is_edited' => 'boolean',
                 'id' => 'integer',
+            ]
+        );
+    }
+
+    /**
+     * @group DBAL-2688
+     */
+    public function testUpdateWithIsNull()
+    {
+        $conn = $this->getExecuteUpdateMockConnection();
+
+        $conn->expects($this->once())
+            ->method('executeUpdate')
+            ->with(
+                'UPDATE TestTable SET text = ?, is_edited = ? WHERE id IS NULL AND name = ?',
+                [
+                    'some text',
+                    null,
+                    'foo',
+                ],
+                [
+                    'string',
+                    'boolean',
+                    'string',
+                ]
+            );
+
+        $conn->update(
+            'TestTable',
+            [
+                'text' => 'some text',
+                'is_edited' => null,
+            ],
+            [
+                'id' => null,
+                'name' => 'foo',
+            ],
+            [
+                'text' => 'string',
+                'is_edited' => 'boolean',
+                'id' => 'integer',
+                'name' => 'string',
+            ]
+        );
+    }
+
+    /**
+     * @group DBAL-2688
+     */
+    public function testDeleteWithIsNull()
+    {
+        $conn = $this->getExecuteUpdateMockConnection();
+
+        $conn->expects($this->once())
+            ->method('executeUpdate')
+            ->with(
+                'DELETE FROM TestTable WHERE id IS NULL AND name = ?',
+                [
+                    'foo',
+                ],
+                [
+                    'string',
+                ]
+            );
+
+        $conn->delete(
+            'TestTable',
+            [
+                'id' => null,
+                'name' => 'foo',
+            ],
+            [
+                'id' => 'integer',
+                'name' => 'string',
             ]
         );
     }
@@ -669,5 +739,123 @@ class ConnectionTest extends \Doctrine\Tests\DbalTestCase
             ->will($this->returnValue($platformMock));
 
         $this->assertSame($platformMock, $connection->getDatabasePlatform());
+    }
+
+    public function testConnectionParamsArePassedToTheQueryCacheProfileInExecuteCacheQuery()
+    {
+        $resultCacheDriverMock = $this->createMock(Cache::class);
+
+        $resultCacheDriverMock
+            ->expects($this->atLeastOnce())
+            ->method('fetch')
+            ->with('cacheKey')
+            ->will($this->returnValue(['realKey' => []]));
+
+        $query  = 'SELECT * FROM foo WHERE bar = ?';
+        $params = [666];
+        $types  = [\PDO::PARAM_INT];
+
+        /* @var $queryCacheProfileMock QueryCacheProfile|\PHPUnit_Framework_MockObject_MockObject */
+        $queryCacheProfileMock = $this->createMock(QueryCacheProfile::class);
+
+        $queryCacheProfileMock
+            ->expects($this->any())
+            ->method('getResultCacheDriver')
+            ->will($this->returnValue($resultCacheDriverMock));
+
+        // This is our main expectation
+        $queryCacheProfileMock
+            ->expects($this->once())
+            ->method('generateCacheKeys')
+            ->with($query, $params, $types, $this->params)
+            ->will($this->returnValue(['cacheKey', 'realKey']));
+
+        /* @var $driver Driver */
+        $driver = $this->createMock(Driver::class);
+
+        $this->assertInstanceOf(
+            ArrayStatement::class,
+            (new Connection($this->params, $driver))->executeCacheQuery($query, $params, $types, $queryCacheProfileMock)
+        );
+    }
+
+    /**
+     * @group #2821
+     */
+    public function testShouldNotPassPlatformInParamsToTheQueryCacheProfileInExecuteCacheQuery(): void
+    {
+        $resultCacheDriverMock = $this->createMock(Cache::class);
+
+        $resultCacheDriverMock
+            ->expects($this->atLeastOnce())
+            ->method('fetch')
+            ->with('cacheKey')
+            ->will($this->returnValue(['realKey' => []]));
+
+        /* @var $queryCacheProfileMock QueryCacheProfile|\PHPUnit_Framework_MockObject_MockObject */
+        $queryCacheProfileMock = $this->createMock(QueryCacheProfile::class);
+
+        $queryCacheProfileMock
+            ->expects($this->any())
+            ->method('getResultCacheDriver')
+            ->will($this->returnValue($resultCacheDriverMock));
+
+        $query  = 'SELECT 1';
+
+        $connectionParams = $this->params;
+
+        $queryCacheProfileMock
+            ->expects($this->once())
+            ->method('generateCacheKeys')
+            ->with($query, [], [], $connectionParams)
+            ->will($this->returnValue(['cacheKey', 'realKey']));
+
+        $connectionParams['platform'] = $this->createMock(AbstractPlatform::class);
+
+        /* @var $driver Driver */
+        $driver = $this->createMock(Driver::class);
+
+        (new Connection($connectionParams, $driver))->executeCacheQuery($query, [], [], $queryCacheProfileMock);
+    }
+
+    /**
+     * @group #2821
+     */
+    public function testThrowsExceptionWhenInValidPlatformSpecified(): void
+    {
+        $connectionParams = $this->params;
+        $connectionParams['platform'] = new \stdClass();
+
+        /* @var $driver Driver */
+        $driver = $this->createMock(Driver::class);
+
+        $this->expectException(DBALException::class);
+
+        new Connection($connectionParams, $driver);
+    }
+
+    /**
+     * @group DBAL-990
+     */
+    public function testRethrowsOriginalExceptionOnDeterminingPlatformWhenConnectingToNonExistentDatabase()
+    {
+        /** @var \Doctrine\Tests\Mocks\VersionAwarePlatformDriverMock|\PHPUnit_Framework_MockObject_MockObject $driverMock */
+        $driverMock = $this->createMock(VersionAwarePlatformDriverMock::class);
+
+        $connection = new Connection(array('dbname' => 'foo'), $driverMock);
+        $originalException = new \Exception('Original exception');
+        $fallbackException = new \Exception('Fallback exception');
+
+        $driverMock->expects($this->at(0))
+            ->method('connect')
+            ->willThrowException($originalException);
+
+        $driverMock->expects($this->at(1))
+            ->method('connect')
+            ->willThrowException($fallbackException);
+
+        $this->expectExceptionMessage($originalException->getMessage());
+
+        $connection->getDatabasePlatform();
     }
 }
