@@ -327,4 +327,143 @@ class Oracle121Platform extends OraclePlatform {
         return $condition;
     }
 
+
+    // The following methods are used to retrieve database metadata in one single call instead of one call per table
+
+    /**
+     * Get the SQL to list all tables indexes for a given database
+     * @see getListTableIndexesSQL
+     * @param string $currentDatabase
+     * @return string $sql
+     */
+    public function getListTablesIndexesSQL($currentDatabase = null) {
+        $indexColumnsTableName = "user_ind_columns";
+        $columnConstraintsTableName = "user_constraints";
+        $expressionsTableName = "user_ind_expressions";
+        $indexColumnsOwnerCondition = '';
+        $columnConstraintsOwnerCondition = '';
+
+        if (null !== $currentDatabase && '/' !== $currentDatabase) {
+            $currentDatabase = $this->normalizeIdentifier($currentDatabase);
+            $currentDatabase = $this->quoteStringLiteral($currentDatabase->getName());
+            $indexColumnsTableName = "all_ind_columns";
+            $columnConstraintsTableName = "all_constraints";
+            $expressionsTableName = "all_ind_expressions";
+            $indexColumnsOwnerCondition = "WHERE uind_col.index_owner = " . $currentDatabase;
+            $columnConstraintsOwnerCondition = " AND ucon.owner = " . $currentDatabase;
+        }
+
+        $sql = "SELECT uind_col.table_name as table_name, uind_col.index_name AS name,
+              (
+                  SELECT uind.index_type
+                  FROM   user_indexes uind
+                  WHERE  uind.index_name = uind_col.index_name
+              ) AS type,
+              decode(
+                  (
+                      SELECT uind.uniqueness
+                      FROM   user_indexes uind
+                      WHERE  uind.index_name = uind_col.index_name
+                  ),
+                  'NONUNIQUE',
+                  0,
+                  'UNIQUE',
+                  1
+              ) AS is_unique,
+              uind_col.column_name AS column_name,
+              uind_col.column_position AS column_pos,
+              (
+                  SELECT ucon.constraint_type
+                  FROM   " . $columnConstraintsTableName . " ucon
+                  WHERE  ucon.constraint_name = uind_col.index_name" . $columnConstraintsOwnerCondition . "
+              ) AS is_primary,                      
+              CASE WHEN COLUMN_NAME LIKE 'SYS_%'
+              THEN column_expression
+              ELSE NULL END AS column_expression
+            FROM      " . $indexColumnsTableName . " uind_col
+            LEFT JOIN " . $expressionsTableName . " uind_expr
+            ON (uind_expr.table_name = uind_col.table_name AND uind_expr.index_name = uind_col.index_name 
+            AND uind_col.column_position = uind_expr.column_position)            
+            " . $indexColumnsOwnerCondition . "
+            ORDER BY uind_col.column_position ASC";
+        return $sql;
+    }
+
+
+
+    /**
+     * Get the SQL to list all foreign keys for a given database
+     * @see getListTableForeignKeysSQL
+     * @param string $database
+     * @return string $sql
+     */
+    public function getListTablesForeignKeysSQL($database = null) {
+        $colConstraintsTableName = "user_constraints";
+        $consColumnsTableName = "user_cons_columns";
+        $colConstraintsOwnerCondition = '';
+        $consColumnsOwnerCondition = '';
+
+        if (null !== $database && '/' !== $database) {
+            $database = $this->normalizeIdentifier($database);
+            $database = $this->quoteStringLiteral($database->getName());
+            $colConstraintsTableName = "all_constraints";
+            $consColumnsTableName = "all_cons_columns";
+            $colConstraintsOwnerCondition = "AND alc.owner = " . $database . " AND r_alc.owner = " . $database;
+            $consColumnsOwnerCondition = "AND cols.owner = " . $database . " AND r_cols.owner = " . $database;
+        }
+
+        $sql = "SELECT alc.constraint_name,
+            alc.DELETE_RULE,
+            alc.search_condition,
+            cols.column_name \"local_column\",
+            cols.position,
+            r_alc.table_name \"references_table\",
+            r_cols.column_name \"foreign_column\",
+            alc.table_name
+          FROM $consColumnsTableName cols
+          LEFT JOIN $colConstraintsTableName alc
+            ON alc.constraint_name = cols.constraint_name
+          LEFT JOIN $colConstraintsTableName r_alc
+            ON alc.r_constraint_name = r_alc.constraint_name
+          LEFT JOIN $consColumnsTableName r_cols
+            ON r_alc.constraint_name = r_cols.constraint_name AND cols.position = r_cols.position
+          WHERE alc.constraint_name = cols.constraint_name
+            AND alc.constraint_type = 'R' " . $colConstraintsOwnerCondition . " " . $consColumnsOwnerCondition . "
+          ORDER BY cols.constraint_name ASC, cols.position ASC";
+        return $sql;
+    }
+
+
+    /**
+     * Get the SQL to list all tables columns for a given database
+     *
+     * @see getListTableColumnsSQL
+     * @param string $database
+     * @return string $sql
+     */
+    public function getListTablesColumnsSQL($database = null) {
+        $tabColumnsTableName = "user_tab_columns";
+        $colCommentsTableName = "user_col_comments";
+        $tabColumnsOwnerCondition = '';
+        $colCommentsOwnerCondition = '';
+
+        if (null !== $database && '/' !== $database) {
+            $database = $this->normalizeIdentifier($database);
+            $database = $this->quoteStringLiteral($database->getName());
+            $tabColumnsTableName = "all_tab_columns";
+            $colCommentsTableName = "all_col_comments";
+            $tabColumnsOwnerCondition = " AND c.owner = " . $database;
+            $colCommentsOwnerCondition = " AND d.OWNER = c.OWNER";
+        }
+
+        $sql = "SELECT c.*, d.comments
+                FROM $tabColumnsTableName c, $colCommentsTableName d
+                WHERE  d.TABLE_NAME = c.TABLE_NAME                     
+                AND    d.COLUMN_NAME = c.COLUMN_NAME
+                $colCommentsOwnerCondition
+                $tabColumnsOwnerCondition                    
+                ORDER BY c.column_name";
+        return $sql;
+    }
+
 }
