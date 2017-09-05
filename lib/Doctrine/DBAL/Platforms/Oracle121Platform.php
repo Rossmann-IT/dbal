@@ -19,15 +19,9 @@
 
 namespace Doctrine\DBAL\Platforms;
 
-use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Identifier;
 use Doctrine\DBAL\Schema\Index;
-use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\Table;
-use Doctrine\DBAL\Schema\TableDiff;
-use Doctrine\DBAL\DBALException;
-use Doctrine\DBAL\Types\BinaryType;
-use Doctrine\DBAL\Types\Type;
 
 /**
  * uses new Oracle 12.1 features
@@ -41,14 +35,33 @@ use Doctrine\DBAL\Types\Type;
 class Oracle121Platform extends OraclePlatform {
 
     /**
-     * the datatype number is treated as a decimal doctrine type (that allows precision / scale)
+     * use of NUMBER(1,0) for boolean
      *
      * {@inheritDoc}
      */
-    protected function initializeDoctrineTypeMappings() {
-        parent::initializeDoctrineTypeMappings();
-        // number has to be treated as type decimal
-        $this->doctrineTypeMapping['number'] = 'decimal';
+    public function getBooleanTypeDeclarationSQL(array $field) {
+        return 'NUMBER(1,0)';
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getIntegerTypeDeclarationSQL(array $field) {
+        return 'NUMBER(10,0)';
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getBigIntTypeDeclarationSQL(array $field) {
+        return 'NUMBER(20,0)';
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getSmallIntTypeDeclarationSQL(array $field) {
+        return 'NUMBER(5,0)';
     }
 
     /**
@@ -61,40 +74,15 @@ class Oracle121Platform extends OraclePlatform {
     }
 
     /**
-     * use of NUMBER(1,0) for boolean
-     * supports identity columns
+     * the datatype NUMBER is treated as a decimal doctrine type (that allows precision / scale)
      *
      * {@inheritDoc}
      */
-    public function getBooleanTypeDeclarationSQL(array $field) {
-        $columnDef['precision'] = 1;
-        $columnDef['scale'] = 0;
-        $sql = 'NUMBER(' . $columnDef['precision'] . ', ' . $columnDef['scale'] . ')';
-        return $sql;
+    protected function initializeDoctrineTypeMappings() {
+        parent::initializeDoctrineTypeMappings();
+        // number has to be treated as type decimal
+        $this->doctrineTypeMapping['number'] = 'decimal';
     }
-
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getIntegerTypeDeclarationSQL(array $field) {
-        throw new \Exception('datatype integer is not supported!');
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getBigIntTypeDeclarationSQL(array $field) {
-        throw new \Exception('datatype bigInt is not supported!');
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getSmallIntTypeDeclarationSQL(array $field) {
-        throw new \Exception('datatype smallInt is not supported!');
-    }
-
 
     /**
      * a column with the option autoincrement is considered to be an identity column
@@ -338,4 +326,5 @@ class Oracle121Platform extends OraclePlatform {
         $condition .= ' END';
         return $condition;
     }
+
 }

@@ -376,7 +376,7 @@ class OracleSchemaManager extends AbstractSchemaManager
      *
      * @return string The quoted identifier.
      */
-    private function getQuotedIdentifierName($identifier)
+    protected function getQuotedIdentifierName($identifier)
     {
         if (preg_match('/[a-z]/', $identifier)) {
             return $this->_platform->quoteIdentifier($identifier);
@@ -394,7 +394,7 @@ class OracleSchemaManager extends AbstractSchemaManager
      *
      * @return void
      */
-    private function killUserSessions($user)
+    protected function killUserSessions($user)
     {
         $sql = <<<SQL
 SELECT

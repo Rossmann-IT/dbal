@@ -19,14 +19,22 @@
 
 namespace Doctrine\DBAL\Schema;
 
+use Doctrine\DBAL\Platforms\Oracle121Platform;
 use Doctrine\DBAL\Types\Type;
 
 /**
- * Class Oracle121SchemaManager
- * @package Doctrine\DBAL\Schema
+ * Schema Manager for Oracle Database 12c Release 1
+ * - supports the identity clause ("GENERATED ... AS IDENTITY")
+ * @author Simone Burschewski <simone.burschewski@rossmann.de>
+ * @author Robert Grellmann <robert.grellmann@rossmann.de>
  */
 class Oracle121SchemaManager extends OracleSchemaManager
 {
+
+    /**
+     * @var Oracle121Platform
+     */
+    protected $_platform;
 
     /**
      * for special indexes
@@ -39,9 +47,9 @@ class Oracle121SchemaManager extends OracleSchemaManager
      * CREATE INDEX NAME ON TABLE (NLSSORT(COLUMN, 'NLS_SORT=XGERMAN_CI'), COLUMN2);
      *
      * can be function|case
-     * @var null
+     * @var string
      */
-    protected $columnExpressionType = null;
+    protected $columnExpressionType;
 
     /**
      * identity columns are considered as default = null, autoincrement = true
@@ -77,12 +85,18 @@ class Oracle121SchemaManager extends OracleSchemaManager
         }
 
         if (null !== $tableColumn['data_default']) {
-            // Default values returned from database are enclosed in single quotes.
-            //$tableColumn['data_default'] = trim($tableColumn['data_default'], "'");
-            /**
-             * the trim above leads to problems with the expression SYSTIMESTAMP AT TIME ZONE 'UTC'
-             */
             $tableColumn['data_default'] = trim($tableColumn['data_default']);
+            /**
+             * default value for a string looks like this: 'open'
+             * default value for an expression looks like this: SYSTIMESTAMP AT TIME ZONE 'UTC'
+             * we only want to get rid of the outer single quotes in strings, not in expressions
+             */
+            $hasLeftQuote = substr($tableColumn['data_default'], 0, 1) === "'";
+            $hasRightQuote = substr($tableColumn['data_default'], -1) === "'";
+
+            if ($hasLeftQuote && $hasRightQuote) {
+                $tableColumn['data_default'] = trim($tableColumn['data_default'], "'");
+            }
         }
 
         if (!empty($tableColumn['data_default']) && $tableColumn['identity_column'] === 'YES') {
@@ -100,11 +114,7 @@ class Oracle121SchemaManager extends OracleSchemaManager
             case 'number':
                 $precision = $tableColumn['data_precision'];
                 $scale = $tableColumn['data_scale'];
-                if ($tableColumn['data_precision'] == 1 && $tableColumn['data_scale'] == 0) {
-                    $type = 'boolean';
-                } else {
-                    $type = 'decimal';
-                }
+                $type = 'decimal';
                 $length = null;
                 break;
             case 'pls_integer':
@@ -168,20 +178,6 @@ class Oracle121SchemaManager extends OracleSchemaManager
     }
 
     /**
-     * copy pasted due to private access
-     *
-     * {@inheritdoc}
-     */
-    private function getQuotedIdentifierName($identifier)
-    {
-        if (preg_match('/[a-z]/', $identifier)) {
-            return $this->_platform->quoteIdentifier($identifier);
-        }
-
-        return $identifier;
-    }
-
-    /**
      * custom implementation for indexes with case / nlssort clauses
      *
      * {@inheritdoc}
@@ -236,6 +232,7 @@ class Oracle121SchemaManager extends OracleSchemaManager
                                 // columns apart from the first match must be deleted
                                 $deleteBuffer[] = $indexPosition;
                             }
+                            break;
                     }
                 } else {
                     unset($buffer['where']);
@@ -275,6 +272,7 @@ class Oracle121SchemaManager extends OracleSchemaManager
      * @throws \Exception
      */
     protected function getColumnExpression($columnExpression) {
+        $this->columnExpressionType = null;
         $columnExpression = str_replace(['"', '\''], '', $columnExpression);
         $columnExpression = preg_replace('!\s+!', ' ', $columnExpression);
         $columnExpression = trim($columnExpression);
@@ -340,4 +338,5 @@ class Oracle121SchemaManager extends OracleSchemaManager
         }
         return trim($matches[1]);
     }
+
 }
