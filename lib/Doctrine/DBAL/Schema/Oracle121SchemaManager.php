@@ -286,10 +286,6 @@ class Oracle121SchemaManager extends OracleSchemaManager
         if (1 === $found) {
             $function = $matches[1];
             $field = $matches[2];
-            // we don't want this in the where clause of our index definition
-            if (strtoupper($function) == 'SYS_EXTRACT_UTC') {
-                return [$field => []];
-            }
             if (isset($matches[3])) {
                 $params = explode('=', $matches[3]);
             }

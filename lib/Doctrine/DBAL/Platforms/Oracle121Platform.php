@@ -143,39 +143,38 @@ class Oracle121Platform extends OraclePlatform {
         $table = $this->normalizeIdentifier($table);
         $table = $this->quoteStringLiteral($table->getName());
 
-        $sql = "SELECT uind_col.index_name AS name,
+        $sql = "SELECT index_columns.index_name AS name,
+                    (
+                       SELECT uind.index_type
+                       FROM   user_indexes uind
+                       WHERE  uind.index_name = index_columns.index_name
+                    ) AS type,
+                    decode(
                        (
-                           SELECT uind.index_type
+                           SELECT uind.uniqueness
                            FROM   user_indexes uind
-                           WHERE  uind.index_name = uind_col.index_name
-                       ) AS type,
-                       decode(
-                           (
-                               SELECT uind.uniqueness
-                               FROM   user_indexes uind
-                               WHERE  uind.index_name = uind_col.index_name
-                           ),
-                           'NONUNIQUE',
-                           0,
-                           'UNIQUE',
-                           1
-                       ) AS is_unique,
-                       uind_col.column_name AS column_name,
-                       uind_col.column_position AS column_pos,
-                       (
-                           SELECT ucon.constraint_type
-                           FROM   user_constraints ucon
-                           WHERE  ucon.constraint_name = uind_col.index_name
-                       ) AS is_primary,
-                CASE WHEN COLUMN_NAME LIKE 'SYS_%'
-                THEN column_expression
-                ELSE NULL END AS column_expression
-             FROM      user_ind_columns uind_col
-             LEFT JOIN user_ind_expressions uind_expr
-             ON (uind_expr.table_name = uind_col.table_name AND uind_expr.index_name = uind_col.index_name 
-                AND uind_col.column_position = uind_expr.column_position)
-             WHERE     uind_col.table_name = " . $table . "
-             ORDER BY  uind_col.column_position ASC";
+                           WHERE  uind.index_name = index_columns.index_name
+                       ),
+                       'NONUNIQUE',
+                       0,
+                       'UNIQUE',
+                       1
+                    ) AS is_unique,
+                    index_columns.column_name AS column_name,
+                    index_columns.column_position AS column_pos,
+                    constraints.constraint_type AS is_primary,
+                    CASE WHEN COLUMN_NAME LIKE 'SYS_%'
+                        THEN column_expression
+                        ELSE NULL END AS column_expression
+                FROM user_ind_columns index_columns
+                LEFT JOIN user_ind_expressions index_expressions
+                    ON (index_expressions.table_name = index_columns.table_name 
+                        AND index_expressions.index_name = index_columns.index_name 
+                        AND index_columns.column_position = index_expressions.column_position)
+                LEFT JOIN user_constraints constraints
+                    ON constraints.index_name = index_columns.index_name
+                WHERE index_columns.table_name = $table
+                ORDER BY index_columns.column_position ASC";
         return $sql;
     }
 
@@ -349,43 +348,43 @@ class Oracle121Platform extends OraclePlatform {
             $indexColumnsTableName = "all_ind_columns";
             $columnConstraintsTableName = "all_constraints";
             $expressionsTableName = "all_ind_expressions";
-            $indexColumnsOwnerCondition = "WHERE uind_col.index_owner = " . $currentDatabase;
-            $columnConstraintsOwnerCondition = " AND ucon.owner = " . $currentDatabase;
+            $indexColumnsOwnerCondition = "WHERE index_columns.index_owner = " . $currentDatabase;
+            $columnConstraintsOwnerCondition = " AND constraints.owner = " . $currentDatabase;
         }
 
-        $sql = "SELECT uind_col.table_name as table_name, uind_col.index_name AS name,
+        $sql = "SELECT index_columns.table_name as table_name, index_columns.index_name AS name,
               (
                   SELECT uind.index_type
                   FROM   user_indexes uind
-                  WHERE  uind.index_name = uind_col.index_name
+                  WHERE  uind.index_name = index_columns.index_name
               ) AS type,
               decode(
                   (
                       SELECT uind.uniqueness
                       FROM   user_indexes uind
-                      WHERE  uind.index_name = uind_col.index_name
+                      WHERE  uind.index_name = index_columns.index_name
                   ),
                   'NONUNIQUE',
                   0,
                   'UNIQUE',
                   1
               ) AS is_unique,
-              uind_col.column_name AS column_name,
-              uind_col.column_position AS column_pos,
-              (
-                  SELECT ucon.constraint_type
-                  FROM   " . $columnConstraintsTableName . " ucon
-                  WHERE  ucon.constraint_name = uind_col.index_name" . $columnConstraintsOwnerCondition . "
-              ) AS is_primary,                      
+              index_columns.column_name AS column_name,
+              index_columns.column_position AS column_pos,
+              constraints.constraint_type AS is_primary,
               CASE WHEN COLUMN_NAME LIKE 'SYS_%'
               THEN column_expression
               ELSE NULL END AS column_expression
-            FROM      " . $indexColumnsTableName . " uind_col
-            LEFT JOIN " . $expressionsTableName . " uind_expr
-            ON (uind_expr.table_name = uind_col.table_name AND uind_expr.index_name = uind_col.index_name 
-            AND uind_col.column_position = uind_expr.column_position)            
-            " . $indexColumnsOwnerCondition . "
-            ORDER BY uind_col.column_position ASC";
+            FROM      $indexColumnsTableName index_columns
+            LEFT JOIN $expressionsTableName index_expressions
+              ON (index_expressions.table_name = index_columns.table_name 
+                  AND index_expressions.index_name = index_columns.index_name
+                  AND index_columns.column_position = index_expressions.column_position)
+            LEFT JOIN $columnConstraintsTableName constraints
+              ON (constraints.index_name = index_columns.index_name
+                  $columnConstraintsOwnerCondition)
+            $indexColumnsOwnerCondition
+            ORDER BY index_columns.index_name, index_columns.column_position";
         return $sql;
     }
 
