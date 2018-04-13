@@ -27,6 +27,19 @@ use Doctrine\DBAL\Schema\Identifier;
 use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
+use Doctrine\DBAL\TransactionIsolationLevel;
+use Doctrine\DBAL\Types;
+use function array_merge;
+use function array_unique;
+use function array_values;
+use function implode;
+use function is_numeric;
+use function sprintf;
+use function sqrt;
+use function str_replace;
+use function strlen;
+use function strpos;
+use function strtolower;
 
 /**
  * The SqlitePlatform class describes the specifics and dialects of the SQLite
@@ -78,16 +91,16 @@ class SqlitePlatform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    public function getTrimExpression($str, $pos = self::TRIM_UNSPECIFIED, $char = false)
+    public function getTrimExpression($str, $pos = TrimMode::UNSPECIFIED, $char = false)
     {
         $trimChar = ($char != false) ? (', ' . $char) : '';
 
         switch ($pos) {
-            case self::TRIM_LEADING:
+            case TrimMode::LEADING:
                 $trimFn = 'LTRIM';
                 break;
 
-            case self::TRIM_TRAILING:
+            case TrimMode::TRAILING:
                 $trimFn = 'RTRIM';
                 break;
 
@@ -130,22 +143,26 @@ class SqlitePlatform extends AbstractPlatform
     protected function getDateArithmeticIntervalExpression($date, $operator, $interval, $unit)
     {
         switch ($unit) {
-            case self::DATE_INTERVAL_UNIT_SECOND:
-            case self::DATE_INTERVAL_UNIT_MINUTE:
-            case self::DATE_INTERVAL_UNIT_HOUR:
+            case DateIntervalUnit::SECOND:
+            case DateIntervalUnit::MINUTE:
+            case DateIntervalUnit::HOUR:
                 return "DATETIME(" . $date . ",'" . $operator . $interval . " " . $unit . "')";
 
             default:
                 switch ($unit) {
-                    case self::DATE_INTERVAL_UNIT_WEEK:
+                    case DateIntervalUnit::WEEK:
                         $interval *= 7;
-                        $unit = self::DATE_INTERVAL_UNIT_DAY;
+                        $unit      = DateIntervalUnit::DAY;
                         break;
 
-                    case self::DATE_INTERVAL_UNIT_QUARTER:
+                    case DateIntervalUnit::QUARTER:
                         $interval *= 3;
-                        $unit = self::DATE_INTERVAL_UNIT_MONTH;
+                        $unit      = DateIntervalUnit::MONTH;
                         break;
+                }
+
+                if (! is_numeric($interval)) {
+                    $interval = "' || " . $interval . " || '";
                 }
 
                 return "DATE(" . $date . ",'" . $operator . $interval . " " . $unit . "')";
@@ -166,11 +183,11 @@ class SqlitePlatform extends AbstractPlatform
     protected function _getTransactionIsolationLevelSQL($level)
     {
         switch ($level) {
-            case \Doctrine\DBAL\Connection::TRANSACTION_READ_UNCOMMITTED:
+            case TransactionIsolationLevel::READ_UNCOMMITTED:
                 return 0;
-            case \Doctrine\DBAL\Connection::TRANSACTION_READ_COMMITTED:
-            case \Doctrine\DBAL\Connection::TRANSACTION_REPEATABLE_READ:
-            case \Doctrine\DBAL\Connection::TRANSACTION_SERIALIZABLE:
+            case TransactionIsolationLevel::READ_COMMITTED:
+            case TransactionIsolationLevel::REPEATABLE_READ:
+            case TransactionIsolationLevel::SERIALIZABLE:
                 return 1;
             default:
                 return parent::_getTransactionIsolationLevelSQL($level);
@@ -525,7 +542,7 @@ class SqlitePlatform extends AbstractPlatform
     /**
      * User-defined function for Sqlite that is used with PDO::sqliteCreateFunction().
      *
-     * @param integer|float $value
+     * @param int|float $value
      *
      * @return float
      */
@@ -537,10 +554,10 @@ class SqlitePlatform extends AbstractPlatform
     /**
      * User-defined function for Sqlite that implements MOD(a, b).
      *
-     * @param integer $a
-     * @param integer $b
+     * @param int $a
+     * @param int $b
      *
-     * @return integer
+     * @return int
      */
     public static function udfMod($a, $b)
     {
@@ -548,11 +565,11 @@ class SqlitePlatform extends AbstractPlatform
     }
 
     /**
-     * @param string  $str
-     * @param string  $substr
-     * @param integer $offset
+     * @param string $str
+     * @param string $substr
+     * @param int    $offset
      *
-     * @return integer
+     * @return int
      */
     public static function udfLocate($str, $substr, $offset = 0)
     {
@@ -817,9 +834,11 @@ class SqlitePlatform extends AbstractPlatform
 
             $columnName = strtolower($columnName);
             if (isset($columns[$columnName])) {
-                unset($columns[$columnName]);
-                unset($oldColumnNames[$columnName]);
-                unset($newColumnNames[$columnName]);
+                unset(
+                    $columns[$columnName],
+                    $oldColumnNames[$columnName],
+                    $newColumnNames[$columnName]
+                );
             }
         }
 
@@ -904,7 +923,7 @@ class SqlitePlatform extends AbstractPlatform
             if ( ! $columnDiff->fromColumn instanceof Column ||
                 ! $columnDiff->column instanceof Column ||
                 ! $columnDiff->column->getAutoincrement() ||
-                ! (string) $columnDiff->column->getType() === 'Integer'
+                ! $columnDiff->column->getType() instanceof Types\IntegerType
             ) {
                 continue;
             }
@@ -915,9 +934,9 @@ class SqlitePlatform extends AbstractPlatform
                 continue;
             }
 
-            $fromColumnType = (string) $columnDiff->fromColumn->getType();
+            $fromColumnType = $columnDiff->fromColumn->getType();
 
-            if ($fromColumnType === 'SmallInt' || $fromColumnType === 'BigInt') {
+            if ($fromColumnType instanceof Types\SmallIntType || $fromColumnType instanceof Types\BigIntType) {
                 unset($diff->changedColumns[$oldColumnName]);
             }
         }
@@ -942,17 +961,17 @@ class SqlitePlatform extends AbstractPlatform
             }
 
             $field = array_merge(['unique' => null, 'autoincrement' => null, 'default' => null], $column->toArray());
-            $type = (string) $field['type'];
+            $type = $field['type'];
             switch (true) {
                 case isset($field['columnDefinition']) || $field['autoincrement'] || $field['unique']:
-                case $type == 'DateTime' && $field['default'] == $this->getCurrentTimestampSQL():
-                case $type == 'Date' && $field['default'] == $this->getCurrentDateSQL():
-                case $type == 'Time' && $field['default'] == $this->getCurrentTimeSQL():
+                case $type instanceof Types\DateTimeType && $field['default'] == $this->getCurrentTimestampSQL():
+                case $type instanceof Types\DateType && $field['default'] == $this->getCurrentDateSQL():
+                case $type instanceof Types\TimeType && $field['default'] == $this->getCurrentTimeSQL():
                     return false;
             }
 
             $field['name'] = $column->getQuotedName($this);
-            if (strtolower($field['type']) == 'string' && $field['length'] === null) {
+            if ($type instanceof Types\StringType && $field['length'] === null) {
                 $field['length'] = 255;
             }
 

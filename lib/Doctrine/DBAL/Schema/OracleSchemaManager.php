@@ -22,6 +22,16 @@ namespace Doctrine\DBAL\Schema;
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Driver\DriverException;
 use Doctrine\DBAL\Types\Type;
+use const CASE_LOWER;
+use function array_change_key_case;
+use function array_values;
+use function is_null;
+use function preg_match;
+use function sprintf;
+use function strpos;
+use function strtolower;
+use function strtoupper;
+use function trim;
 
 /**
  * Oracle Schema Manager.
@@ -238,7 +248,6 @@ class OracleSchemaManager extends AbstractSchemaManager
             'comment'    => isset($tableColumn['comments']) && '' !== $tableColumn['comments']
                 ? $tableColumn['comments']
                 : null,
-            'platformDetails' => [],
         ];
 
         return new Column($this->getQuotedIdentifierName($tableColumn['column_name']), Type::getType($type), $options);
@@ -344,7 +353,7 @@ class OracleSchemaManager extends AbstractSchemaManager
     /**
      * @param string $table
      *
-     * @return boolean
+     * @return bool
      */
     public function dropAutoincrement($table)
     {

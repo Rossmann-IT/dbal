@@ -6,6 +6,7 @@ use Doctrine\DBAL\Event\ConnectionEventArgs;
 use Doctrine\DBAL\Event\Listeners\OracleSessionInit;
 use Doctrine\DBAL\Events;
 use Doctrine\Tests\DbalTestCase;
+use function sprintf;
 
 class OracleSessionInitTest extends DbalTestCase
 {
@@ -54,6 +55,6 @@ class OracleSessionInitTest extends DbalTestCase
     public function testGetSubscribedEvents()
     {
         $listener = new OracleSessionInit();
-        $this->assertEquals(array(Events::postConnect), $listener->getSubscribedEvents());
+        self::assertEquals(array(Events::postConnect), $listener->getSubscribedEvents());
     }
 }

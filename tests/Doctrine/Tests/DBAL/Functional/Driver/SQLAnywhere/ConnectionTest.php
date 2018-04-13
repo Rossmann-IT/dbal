@@ -4,6 +4,7 @@ namespace Doctrine\Tests\DBAL\Functional\Driver\SQLAnywhere;
 
 use Doctrine\DBAL\Driver\SQLAnywhere\Driver;
 use Doctrine\DBAL\DriverManager;
+use function extension_loaded;
 
 class ConnectionTest extends \Doctrine\Tests\DbalFunctionalTestCase
 {
@@ -29,7 +30,7 @@ class ConnectionTest extends \Doctrine\Tests\DbalFunctionalTestCase
 
         $conn->connect();
 
-        $this->assertTrue($conn->isConnected(), 'No SQLAnywhere-nonpersistent connection established');
+        self::assertTrue($conn->isConnected(), 'No SQLAnywhere-nonpersistent connection established');
     }
 
     public function testPersistentConnection()
@@ -41,6 +42,6 @@ class ConnectionTest extends \Doctrine\Tests\DbalFunctionalTestCase
 
         $conn->connect();
 
-        $this->assertTrue($conn->isConnected(), 'No SQLAnywhere-persistent connection established');
+        self::assertTrue($conn->isConnected(), 'No SQLAnywhere-persistent connection established');
     }
 }

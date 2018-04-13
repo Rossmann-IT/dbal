@@ -3,9 +3,9 @@
 namespace Doctrine\Tests\DBAL\Types;
 
 use Doctrine\DBAL\Types\ConversionException;
-use PHPUnit_Framework_TestCase;
+use function tmpfile;
 
-class ConversionExceptionTest extends PHPUnit_Framework_TestCase
+class ConversionExceptionTest extends \PHPUnit\Framework\TestCase
 {
     /**
      * @dataProvider scalarsProvider
@@ -16,8 +16,8 @@ class ConversionExceptionTest extends PHPUnit_Framework_TestCase
     {
         $exception = ConversionException::conversionFailedInvalidType($scalarValue, 'foo', ['bar', 'baz']);
 
-        $this->assertInstanceOf('Doctrine\DBAL\Types\ConversionException', $exception);
-        $this->assertRegExp(
+        self::assertInstanceOf('Doctrine\DBAL\Types\ConversionException', $exception);
+        self::assertRegExp(
             '/^Could not convert PHP value \'.*\' of type \'(string|boolean|float|double|integer)\' to type \'foo\'. '
             . 'Expected one of the following types: bar, baz$/',
             $exception->getMessage()
@@ -32,8 +32,8 @@ class ConversionExceptionTest extends PHPUnit_Framework_TestCase
     {
         $exception = ConversionException::conversionFailedInvalidType($nonScalar, 'foo', ['bar', 'baz']);
 
-        $this->assertInstanceOf('Doctrine\DBAL\Types\ConversionException', $exception);
-        $this->assertRegExp(
+        self::assertInstanceOf('Doctrine\DBAL\Types\ConversionException', $exception);
+        self::assertRegExp(
             '/^Could not convert PHP value of type \'(.*)\' to type \'foo\'. '
             . 'Expected one of the following types: bar, baz$/',
             $exception->getMessage()
@@ -46,8 +46,8 @@ class ConversionExceptionTest extends PHPUnit_Framework_TestCase
 
         $exception = ConversionException::conversionFailedFormat('foo', 'bar', 'baz', $previous);
 
-        $this->assertInstanceOf('Doctrine\DBAL\Types\ConversionException', $exception);
-        $this->assertSame($previous, $exception->getPrevious());
+        self::assertInstanceOf('Doctrine\DBAL\Types\ConversionException', $exception);
+        self::assertSame($previous, $exception->getPrevious());
     }
 
     /**

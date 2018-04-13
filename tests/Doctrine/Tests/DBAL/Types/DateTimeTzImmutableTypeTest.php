@@ -2,12 +2,14 @@
 
 namespace Doctrine\Tests\DBAL\Types;
 
+use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\ConversionException;
 use Doctrine\DBAL\Types\DateTimeTzImmutableType;
 use Doctrine\DBAL\Types\Type;
+use function get_class;
 
-class DateTimeTzImmutableTypeTest extends \PHPUnit_Framework_TestCase
+class DateTimeTzImmutableTypeTest extends \PHPUnit\Framework\TestCase
 {
     /**
      * @var \Doctrine\DBAL\Platforms\AbstractPlatform|\Prophecy\Prophecy\ObjectProphecy
@@ -27,17 +29,17 @@ class DateTimeTzImmutableTypeTest extends \PHPUnit_Framework_TestCase
 
     public function testFactoryCreatesCorrectType()
     {
-        $this->assertSame(DateTimeTzImmutableType::class, get_class($this->type));
+        self::assertSame(DateTimeTzImmutableType::class, get_class($this->type));
     }
 
     public function testReturnsName()
     {
-        $this->assertSame('datetimetz_immutable', $this->type->getName());
+        self::assertSame('datetimetz_immutable', $this->type->getName());
     }
 
     public function testReturnsBindingType()
     {
-        $this->assertSame(\PDO::PARAM_STR, $this->type->getBindingType());
+        self::assertSame(ParameterType::STRING, $this->type->getBindingType());
     }
 
     public function testConvertsDateTimeImmutableInstanceToDatabaseValue()
@@ -47,7 +49,7 @@ class DateTimeTzImmutableTypeTest extends \PHPUnit_Framework_TestCase
         $this->platform->getDateTimeTzFormatString()->willReturn('Y-m-d H:i:s T')->shouldBeCalled();
         $date->format('Y-m-d H:i:s T')->willReturn('2016-01-01 15:58:59 UTC')->shouldBeCalled();
 
-        $this->assertSame(
+        self::assertSame(
             '2016-01-01 15:58:59 UTC',
             $this->type->convertToDatabaseValue($date->reveal(), $this->platform->reveal())
         );
@@ -55,7 +57,7 @@ class DateTimeTzImmutableTypeTest extends \PHPUnit_Framework_TestCase
 
     public function testConvertsNullToDatabaseValue()
     {
-        $this->assertNull($this->type->convertToDatabaseValue(null, $this->platform->reveal()));
+        self::assertNull($this->type->convertToDatabaseValue(null, $this->platform->reveal()));
     }
 
     public function testDoesNotSupportMutableDateTimeToDatabaseValueConversion()
@@ -69,12 +71,12 @@ class DateTimeTzImmutableTypeTest extends \PHPUnit_Framework_TestCase
     {
         $date = new \DateTimeImmutable();
 
-        $this->assertSame($date, $this->type->convertToPHPValue($date, $this->platform->reveal()));
+        self::assertSame($date, $this->type->convertToPHPValue($date, $this->platform->reveal()));
     }
 
     public function testConvertsNullToPHPValue()
     {
-        $this->assertNull($this->type->convertToPHPValue(null, $this->platform->reveal()));
+        self::assertNull($this->type->convertToPHPValue(null, $this->platform->reveal()));
     }
 
     public function testConvertsDateTimeWithTimezoneStringToPHPValue()
@@ -83,8 +85,8 @@ class DateTimeTzImmutableTypeTest extends \PHPUnit_Framework_TestCase
 
         $date = $this->type->convertToPHPValue('2016-01-01 15:58:59 UTC', $this->platform->reveal());
 
-        $this->assertInstanceOf(\DateTimeImmutable::class, $date);
-        $this->assertSame('2016-01-01 15:58:59 UTC', $date->format('Y-m-d H:i:s T'));
+        self::assertInstanceOf(\DateTimeImmutable::class, $date);
+        self::assertSame('2016-01-01 15:58:59 UTC', $date->format('Y-m-d H:i:s T'));
     }
 
     public function testThrowsExceptionDuringConversionToPHPValueWithInvalidDateTimeWithTimezoneString()
@@ -96,6 +98,6 @@ class DateTimeTzImmutableTypeTest extends \PHPUnit_Framework_TestCase
 
     public function testRequiresSQLCommentHint()
     {
-        $this->assertTrue($this->type->requiresSQLCommentHint($this->platform->reveal()));
+        self::assertTrue($this->type->requiresSQLCommentHint($this->platform->reveal()));
     }
 }

@@ -3,6 +3,7 @@
 namespace Doctrine\Tests\DBAL\Driver\SQLSrv;
 
 use Doctrine\Tests\DbalTestCase;
+use function extension_loaded;
 
 class SQLSrvConnectionTest extends DbalTestCase
 {
@@ -28,6 +29,6 @@ class SQLSrvConnectionTest extends DbalTestCase
 
     public function testDoesNotRequireQueryForServerVersion()
     {
-        $this->assertFalse($this->connectionMock->requiresQueryForServerVersion());
+        self::assertFalse($this->connectionMock->requiresQueryForServerVersion());
     }
 }

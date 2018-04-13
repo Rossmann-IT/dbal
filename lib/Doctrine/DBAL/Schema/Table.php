@@ -22,6 +22,15 @@ namespace Doctrine\DBAL\Schema;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Schema\Visitor\Visitor;
 use Doctrine\DBAL\DBALException;
+use const ARRAY_FILTER_USE_KEY;
+use function array_filter;
+use function array_merge;
+use function in_array;
+use function is_numeric;
+use function is_string;
+use function preg_match;
+use function strlen;
+use function strtolower;
 
 /**
  * Object Representation of a table.
@@ -77,7 +86,7 @@ class Table extends AbstractAsset
      * @param Column[]               $columns
      * @param Index[]                $indexes
      * @param ForeignKeyConstraint[] $fkConstraints
-     * @param integer                $idGeneratorType
+     * @param int                    $idGeneratorType
      * @param array                  $options
      *
      * @throws DBALException
@@ -116,15 +125,15 @@ class Table extends AbstractAsset
     }
 
     /**
-     * @return integer
+     * @return int
      */
     protected function _getMaxIdentifierLength()
     {
         if ($this->_schemaConfig instanceof SchemaConfig) {
             return $this->_schemaConfig->getMaxIdentifierLength();
-        } else {
-            return 63;
         }
+
+        return 63;
     }
 
     /**
@@ -264,7 +273,7 @@ class Table extends AbstractAsset
      *
      * @param array $columnsNames
      *
-     * @return boolean
+     * @return bool
      */
     public function columnsAreIndexed(array $columnsNames)
     {
@@ -279,12 +288,12 @@ class Table extends AbstractAsset
     }
 
     /**
-     * @param array   $columnNames
-     * @param string  $indexName
-     * @param boolean $isUnique
-     * @param boolean $isPrimary
-     * @param array   $flags
-     * @param array   $options
+     * @param array  $columnNames
+     * @param string $indexName
+     * @param bool   $isUnique
+     * @param bool   $isPrimary
+     * @param array  $flags
+     * @param array  $options
      *
      * @return Index
      *
@@ -378,7 +387,7 @@ class Table extends AbstractAsset
      *
      * Name is inferred from the local columns.
      *
-     * @param Table|string $foreignTable Table schema instance or table name
+     * @param Table|string $foreignTable       Table schema instance or table name
      * @param array        $localColumnNames
      * @param array        $foreignColumnNames
      * @param array        $options
@@ -400,7 +409,7 @@ class Table extends AbstractAsset
      *
      * @deprecated Use {@link addForeignKeyConstraint}
      *
-     * @param Table|string $foreignTable Table schema instance or table name
+     * @param Table|string $foreignTable       Table schema instance or table name
      * @param array        $localColumnNames
      * @param array        $foreignColumnNames
      * @param array        $options
@@ -418,7 +427,7 @@ class Table extends AbstractAsset
      * @deprecated Use {@link addForeignKeyConstraint}
      *
      * @param string       $name
-     * @param Table|string $foreignTable Table schema instance or table name
+     * @param Table|string $foreignTable       Table schema instance or table name
      * @param array        $localColumnNames
      * @param array        $foreignColumnNames
      * @param array        $options
@@ -568,7 +577,7 @@ class Table extends AbstractAsset
      *
      * @param string $constraintName
      *
-     * @return boolean
+     * @return bool
      */
     public function hasForeignKey($constraintName)
     {
@@ -660,7 +669,7 @@ class Table extends AbstractAsset
      *
      * @param string $columnName The column name.
      *
-     * @return boolean
+     * @return bool
      */
     public function hasColumn($columnName)
     {
@@ -720,7 +729,7 @@ class Table extends AbstractAsset
     /**
      * Returns whether this table has a primary key.
      *
-     * @return boolean
+     * @return bool
      */
     public function hasPrimaryKey()
     {
@@ -732,7 +741,7 @@ class Table extends AbstractAsset
      *
      * @param string $indexName The index name.
      *
-     * @return boolean
+     * @return bool
      */
     public function hasIndex($indexName)
     {
@@ -781,7 +790,7 @@ class Table extends AbstractAsset
     /**
      * @param string $name
      *
-     * @return boolean
+     * @return bool
      */
     public function hasOption($name)
     {

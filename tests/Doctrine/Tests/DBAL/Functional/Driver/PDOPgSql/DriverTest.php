@@ -6,6 +6,10 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver\PDOPgSql\Driver;
 use Doctrine\Tests\DBAL\Functional\Driver\AbstractDriverTest;
 use Doctrine\Tests\TestUtil;
+use function array_key_exists;
+use function extension_loaded;
+use function microtime;
+use function sprintf;
 
 class DriverTest extends AbstractDriverTest
 {
@@ -38,7 +42,7 @@ class DriverTest extends AbstractDriverTest
             $this->_conn->getEventManager()
         );
 
-        $this->assertSame(
+        self::assertSame(
             $expectedDatabaseName,
             $this->driver->getDatabase($connection)
         );
@@ -47,7 +51,7 @@ class DriverTest extends AbstractDriverTest
     public function getDatabaseParameter()
     {
         $params = TestUtil::getConnection()->getParams();
-        $realDatabaseName = isset($params['dbname']) ? $params['dbname'] : '';
+        $realDatabaseName = $params['dbname'] ?? '';
         $dummyDatabaseName = $realDatabaseName . 'a';
 
         return array(
@@ -67,8 +71,8 @@ class DriverTest extends AbstractDriverTest
         $parameters = $this->_conn->getParams();
         $parameters['application_name'] = 'doctrine';
 
-        $user = isset($parameters['user']) ? $parameters['user'] : null;
-        $password = isset($parameters['password']) ? $parameters['password'] : null;
+        $user = $parameters['user'] ?? null;
+        $password = $parameters['password'] ?? null;
 
         $connection = $this->driver->connect($parameters, $user, $password);
 
@@ -82,7 +86,7 @@ class DriverTest extends AbstractDriverTest
             $queryColumnName = array_key_exists('current_query', $record) ? 'current_query' : 'query';
 
             if ($record[$queryColumnName] === $sql) {
-                $this->assertSame('doctrine', $record['application_name']);
+                self::assertSame('doctrine', $record['application_name']);
 
                 return;
             }

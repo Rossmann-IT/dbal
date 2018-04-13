@@ -3,8 +3,10 @@
 namespace Doctrine\Tests\DBAL\Functional\Driver;
 
 use Doctrine\DBAL\DriverManager;
+use Doctrine\DBAL\FetchMode;
 use Doctrine\DBAL\Platforms\PostgreSqlPlatform;
 use Doctrine\Tests\DbalFunctionalTestCase;
+use function extension_loaded;
 
 class PDOPgsqlConnectionTest extends DbalFunctionalTestCase
 {
@@ -40,7 +42,11 @@ class PDOPgsqlConnectionTest extends DbalFunctionalTestCase
             $this->_conn->getEventManager()
         );
 
-        $this->assertEquals($charset, $connection->query("SHOW client_encoding")->fetch(\PDO::FETCH_COLUMN));
+        self::assertEquals(
+            $charset,
+            $connection->query('SHOW client_encoding')
+                ->fetch(FetchMode::COLUMN)
+        );
     }
 
     /**

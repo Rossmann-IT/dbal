@@ -5,10 +5,18 @@ namespace Doctrine\Tests\DBAL\Sharding\SQLAzure;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Sharding\SQLAzure\SQLAzureShardManager;
+use function strpos;
 
-abstract class AbstractTestCase extends \PHPUnit_Framework_TestCase
+abstract class AbstractTestCase extends \PHPUnit\Framework\TestCase
 {
+    /**
+     * @var \Doctrine\DBAL\Connection
+     */
     protected $conn;
+
+    /**
+     * @var SQLAzureShardManager
+     */
     protected $sm;
 
     protected function setUp()

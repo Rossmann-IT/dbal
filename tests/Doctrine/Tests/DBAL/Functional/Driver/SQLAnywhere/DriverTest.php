@@ -5,6 +5,7 @@ namespace Doctrine\Tests\DBAL\Functional\Driver\SQLAnywhere;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver\SQLAnywhere\Driver;
 use Doctrine\Tests\DBAL\Functional\Driver\AbstractDriverTest;
+use function extension_loaded;
 
 class DriverTest extends AbstractDriverTest
 {
@@ -35,7 +36,7 @@ class DriverTest extends AbstractDriverTest
 
         // SQL Anywhere has no "default" database. The name of the default database
         // is defined on server startup and therefore can be arbitrary.
-        $this->assertInternalType('string', $this->driver->getDatabase($connection));
+        self::assertInternalType('string', $this->driver->getDatabase($connection));
     }
 
     /**

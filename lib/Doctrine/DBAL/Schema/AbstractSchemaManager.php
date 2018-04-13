@@ -24,6 +24,17 @@ use Doctrine\DBAL\Event\SchemaColumnDefinitionEventArgs;
 use Doctrine\DBAL\Event\SchemaIndexDefinitionEventArgs;
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use function array_filter;
+use function array_map;
+use function array_values;
+use function call_user_func_array;
+use function count;
+use function func_get_args;
+use function is_array;
+use function is_null;
+use function preg_match;
+use function str_replace;
+use function strtolower;
 
 /**
  * Base class for schema managers. Schema managers are used to inspect and/or
@@ -198,7 +209,7 @@ abstract class AbstractSchemaManager
      *
      * @param array $tableNames
      *
-     * @return boolean
+     * @return bool
      */
     public function tablesExist($tableNames)
     {
@@ -862,7 +873,7 @@ abstract class AbstractSchemaManager
                     'columns' => [$tableIndex['column_name']],
                     'unique' => $tableIndex['non_unique'] ? false : true,
                     'primary' => $tableIndex['primary'],
-                    'flags' => isset($tableIndex['flags']) ? $tableIndex['flags'] : [],
+                    'flags' => $tableIndex['flags'] ?? [],
                     'options' => isset($tableIndex['where']) ? ['where' => $tableIndex['where']] : [],
                 ];
             } else {
@@ -1058,9 +1069,13 @@ abstract class AbstractSchemaManager
         }
 
         $params = $this->_conn->getParams();
-        if (isset($params['defaultTableOptions'])) {
-            $schemaConfig->setDefaultTableOptions($params['defaultTableOptions']);
+        if (! isset($params['defaultTableOptions'])) {
+            $params['defaultTableOptions'] = [];
         }
+        if (! isset($params['defaultTableOptions']['charset']) && isset($params['charset'])) {
+            $params['defaultTableOptions']['charset'] = $params['charset'];
+        }
+        $schemaConfig->setDefaultTableOptions($params['defaultTableOptions']);
 
         return $schemaConfig;
     }
@@ -1093,7 +1108,7 @@ abstract class AbstractSchemaManager
      */
     public function extractDoctrineTypeFromComment($comment, $currentType)
     {
-        if (preg_match("(\(DC2Type:([a-zA-Z0-9_]+)\))", $comment, $match)) {
+        if (preg_match("(\(DC2Type:(((?!\)).)+)\))", $comment, $match)) {
             $currentType = $match[1];
         }
 

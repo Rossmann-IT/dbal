@@ -2,19 +2,30 @@
 
 namespace Doctrine\Tests;
 
+use PHPUnit\Framework\Test;
+use PHPUnit\Framework\TestListener;
+use PHPUnit\Framework\TestListenerDefaultImplementation;
+use function get_class;
+use function printf;
+use function str_replace;
+
 /**
  * Listener for collecting and reporting results of performance tests
  *
  * @author Bill Schaller
  */
-class DbalPerformanceTestListener extends \PHPUnit_Framework_BaseTestListener
+class DbalPerformanceTestListener implements TestListener
 {
+    use TestListenerDefaultImplementation;
+    /**
+     * @var string[][]
+     */
     private $timings = [];
 
     /**
      * {@inheritdoc}
      */
-    public function endTest(\PHPUnit_Framework_Test $test, $time)
+    public function endTest(Test $test, float $time) : void
     {
         // This listener only applies to performance tests.
         if ($test instanceof \Doctrine\Tests\DbalPerformanceTestCase)

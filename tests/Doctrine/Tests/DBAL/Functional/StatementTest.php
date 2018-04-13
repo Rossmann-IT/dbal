@@ -3,8 +3,12 @@
 namespace Doctrine\Tests\DBAL\Functional;
 
 use Doctrine\DBAL\Driver\Statement;
+use Doctrine\DBAL\FetchMode;
+use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
+use function base64_decode;
+use function stream_get_contents;
 
 class StatementTest extends \Doctrine\Tests\DbalFunctionalTestCase
 {
@@ -28,15 +32,15 @@ class StatementTest extends \Doctrine\Tests\DbalFunctionalTestCase
         $stmt->execute();
 
         $id = $stmt->fetchColumn();
-        $this->assertEquals(1, $id);
+        self::assertEquals(1, $id);
 
         $stmt->closeCursor();
 
         $stmt->execute();
         $id = $stmt->fetchColumn();
-        $this->assertEquals(1, $id);
+        self::assertEquals(1, $id);
         $id = $stmt->fetchColumn();
-        $this->assertEquals(2, $id);
+        self::assertEquals(2, $id);
     }
 
     public function testReuseStatementWithLongerResults()
@@ -55,9 +59,9 @@ class StatementTest extends \Doctrine\Tests\DbalFunctionalTestCase
 
         $stmt = $this->_conn->prepare('SELECT param, val FROM stmt_longer_results ORDER BY param');
         $stmt->execute();
-        $this->assertArraySubset(array(
+        self::assertArraySubset(array(
             array('param1', 'X'),
-        ), $stmt->fetchAll(\PDO::FETCH_NUM));
+        ), $stmt->fetchAll(FetchMode::NUMERIC));
 
         $row2 = array(
             'param' => 'param2',
@@ -66,10 +70,10 @@ class StatementTest extends \Doctrine\Tests\DbalFunctionalTestCase
         $this->_conn->insert('stmt_longer_results', $row2);
 
         $stmt->execute();
-        $this->assertArraySubset(array(
+        self::assertArraySubset(array(
             array('param1', 'X'),
             array('param2', 'A bit longer value'),
-        ), $stmt->fetchAll(\PDO::FETCH_NUM));
+        ), $stmt->fetchAll(FetchMode::NUMERIC));
     }
 
     public function testFetchLongBlob()
@@ -102,9 +106,7 @@ d+N0hqezcjblboJ3Bj8ARJilHX4FAAA=
 EOF
     );
 
-        $this->_conn->insert('stmt_long_blob', array(
-            'contents' => $contents,
-        ), array(\PDO::PARAM_LOB));
+        $this->_conn->insert('stmt_long_blob', ['contents' => $contents], [ParameterType::LARGE_OBJECT]);
 
         $stmt = $this->_conn->prepare('SELECT contents FROM stmt_long_blob');
         $stmt->execute();
@@ -115,11 +117,7 @@ EOF
                 $this->_conn->getDatabasePlatform()
             );
 
-        if ($this->_conn->getDriver()->getName() === 'pdo_sqlsrv') {
-            $this->markTestSkipped('Skipping on pdo_sqlsrv due to https://github.com/Microsoft/msphpsql/issues/270');
-        }
-
-        $this->assertSame($contents, stream_get_contents($stream));
+        self::assertSame($contents, stream_get_contents($stream));
     }
 
     public function testIncompletelyFetchedStatementDoesNotBlockConnection()
@@ -136,7 +134,7 @@ EOF
 
         $stmt2 = $this->_conn->prepare('SELECT id FROM stmt_test WHERE id = ?');
         $stmt2->execute(array(1));
-        $this->assertEquals(1, $stmt2->fetchColumn());
+        self::assertEquals(1, $stmt2->fetchColumn());
     }
 
     public function testReuseStatementAfterClosingCursor()
@@ -148,13 +146,13 @@ EOF
 
         $stmt->execute(array(1));
         $id = $stmt->fetchColumn();
-        $this->assertEquals(1, $id);
+        self::assertEquals(1, $id);
 
         $stmt->closeCursor();
 
         $stmt->execute(array(2));
         $id = $stmt->fetchColumn();
-        $this->assertEquals(2, $id);
+        self::assertEquals(2, $id);
     }
 
     public function testReuseStatementWithParameterBoundByReference()
@@ -167,11 +165,11 @@ EOF
 
         $id = 1;
         $stmt->execute();
-        $this->assertEquals(1, $stmt->fetchColumn());
+        self::assertEquals(1, $stmt->fetchColumn());
 
         $id = 2;
         $stmt->execute();
-        $this->assertEquals(2, $stmt->fetchColumn());
+        self::assertEquals(2, $stmt->fetchColumn());
     }
 
     public function testReuseStatementWithReboundValue()
@@ -183,11 +181,11 @@ EOF
 
         $stmt->bindValue(1, 1);
         $stmt->execute();
-        $this->assertEquals(1, $stmt->fetchColumn());
+        self::assertEquals(1, $stmt->fetchColumn());
 
         $stmt->bindValue(1, 2);
         $stmt->execute();
-        $this->assertEquals(2, $stmt->fetchColumn());
+        self::assertEquals(2, $stmt->fetchColumn());
     }
 
     public function testReuseStatementWithReboundParam()
@@ -200,12 +198,12 @@ EOF
         $x = 1;
         $stmt->bindParam(1, $x);
         $stmt->execute();
-        $this->assertEquals(1, $stmt->fetchColumn());
+        self::assertEquals(1, $stmt->fetchColumn());
 
         $y = 2;
         $stmt->bindParam(1, $y);
         $stmt->execute();
-        $this->assertEquals(2, $stmt->fetchColumn());
+        self::assertEquals(2, $stmt->fetchColumn());
     }
 
     /**
@@ -215,14 +213,14 @@ EOF
     {
         $stmt = $this->_conn->prepare('SELECT id FROM stmt_test');
 
-        $this->assertSame($expected, $fetch($stmt));
+        self::assertSame($expected, $fetch($stmt));
     }
 
     public function testCloseCursorOnNonExecutedStatement()
     {
         $stmt = $this->_conn->prepare('SELECT id FROM stmt_test');
 
-        $this->assertTrue($stmt->closeCursor());
+        self::assertTrue($stmt->closeCursor());
     }
 
     /**
@@ -235,7 +233,7 @@ EOF
         $stmt->execute();
         $stmt->fetch();
 
-        $this->assertTrue($stmt->closeCursor());
+        self::assertTrue($stmt->closeCursor());
     }
 
     /**
@@ -246,7 +244,7 @@ EOF
         $stmt = $this->_conn->prepare('SELECT id FROM stmt_test');
         $stmt->closeCursor();
 
-        $this->assertSame($expected, $fetch($stmt));
+        self::assertSame($expected, $fetch($stmt));
     }
 
     /**
@@ -260,7 +258,7 @@ EOF
         $stmt->execute();
         $stmt->closeCursor();
 
-        $this->assertSame($expected, $fetch($stmt));
+        self::assertSame($expected, $fetch($stmt));
     }
 
     public static function emptyFetchProvider()
@@ -285,5 +283,14 @@ EOF
                 array(),
             ),
         );
+    }
+
+    public function testFetchInColumnMode() : void
+    {
+        $platform = $this->_conn->getDatabasePlatform();
+        $query    = $platform->getDummySelectSQL();
+        $result   = $this->_conn->executeQuery($query)->fetch(FetchMode::COLUMN);
+
+        self::assertEquals(1, $result);
     }
 }

@@ -20,6 +20,9 @@
 namespace Doctrine\DBAL\Types;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use function is_resource;
+use function json_decode;
+use function stream_get_contents;
 
 /**
  * Array Type which can be used to generate json arrays.
@@ -57,6 +60,6 @@ class JsonArrayType extends JsonType
      */
     public function requiresSQLCommentHint(AbstractPlatform $platform)
     {
-        return ! $platform->hasNativeJsonType();
+        return true;
     }
 }

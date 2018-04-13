@@ -6,12 +6,12 @@ use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\ColumnDiff;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
+use Doctrine\DBAL\TransactionIsolationLevel;
 use Doctrine\DBAL\Types\Type;
+use function sprintf;
 
 abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCase
 {
-    protected static $selectFromCtePattern = "WITH dctrn_cte AS (%s) SELECT * FROM (SELECT *, ROW_NUMBER() OVER (ORDER BY (SELECT 0)) AS doctrine_rownum FROM dctrn_cte) AS doctrine_tbl WHERE doctrine_rownum BETWEEN %d AND %d ORDER BY doctrine_rownum ASC";
-
     public function getGenerateTableSql()
     {
         return 'CREATE TABLE test (id INT IDENTITY NOT NULL, test NVARCHAR(255), PRIMARY KEY (id))';
@@ -55,30 +55,30 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
 
     public function testGeneratesSqlSnippets()
     {
-        $this->assertEquals('CONVERT(date, GETDATE())', $this->_platform->getCurrentDateSQL());
-        $this->assertEquals('CONVERT(time, GETDATE())', $this->_platform->getCurrentTimeSQL());
-        $this->assertEquals('CURRENT_TIMESTAMP', $this->_platform->getCurrentTimestampSQL());
-        $this->assertEquals('"', $this->_platform->getIdentifierQuoteCharacter(), 'Identifier quote character is not correct');
-        $this->assertEquals('(column1 + column2 + column3)', $this->_platform->getConcatExpression('column1', 'column2', 'column3'), 'Concatenation expression is not correct');
+        self::assertEquals('CONVERT(date, GETDATE())', $this->_platform->getCurrentDateSQL());
+        self::assertEquals('CONVERT(time, GETDATE())', $this->_platform->getCurrentTimeSQL());
+        self::assertEquals('CURRENT_TIMESTAMP', $this->_platform->getCurrentTimestampSQL());
+        self::assertEquals('"', $this->_platform->getIdentifierQuoteCharacter(), 'Identifier quote character is not correct');
+        self::assertEquals('(column1 + column2 + column3)', $this->_platform->getConcatExpression('column1', 'column2', 'column3'), 'Concatenation expression is not correct');
     }
 
     public function testGeneratesTransactionsCommands()
     {
-        $this->assertEquals(
-                'SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED',
-                $this->_platform->getSetTransactionIsolationSQL(\Doctrine\DBAL\Connection::TRANSACTION_READ_UNCOMMITTED)
+        self::assertEquals(
+            'SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED',
+            $this->_platform->getSetTransactionIsolationSQL(TransactionIsolationLevel::READ_UNCOMMITTED)
         );
-        $this->assertEquals(
-                'SET TRANSACTION ISOLATION LEVEL READ COMMITTED',
-                $this->_platform->getSetTransactionIsolationSQL(\Doctrine\DBAL\Connection::TRANSACTION_READ_COMMITTED)
+        self::assertEquals(
+            'SET TRANSACTION ISOLATION LEVEL READ COMMITTED',
+            $this->_platform->getSetTransactionIsolationSQL(TransactionIsolationLevel::READ_COMMITTED)
         );
-        $this->assertEquals(
-                'SET TRANSACTION ISOLATION LEVEL REPEATABLE READ',
-                $this->_platform->getSetTransactionIsolationSQL(\Doctrine\DBAL\Connection::TRANSACTION_REPEATABLE_READ)
+        self::assertEquals(
+            'SET TRANSACTION ISOLATION LEVEL REPEATABLE READ',
+            $this->_platform->getSetTransactionIsolationSQL(TransactionIsolationLevel::REPEATABLE_READ)
         );
-        $this->assertEquals(
-                'SET TRANSACTION ISOLATION LEVEL SERIALIZABLE',
-                $this->_platform->getSetTransactionIsolationSQL(\Doctrine\DBAL\Connection::TRANSACTION_SERIALIZABLE)
+        self::assertEquals(
+            'SET TRANSACTION ISOLATION LEVEL SERIALIZABLE',
+            $this->_platform->getSetTransactionIsolationSQL(TransactionIsolationLevel::SERIALIZABLE)
         );
     }
 
@@ -86,23 +86,23 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
     {
         $dropDatabaseExpectation = 'DROP DATABASE foobar';
 
-        $this->assertEquals('SELECT * FROM sys.databases', $this->_platform->getListDatabasesSQL());
-        $this->assertEquals('CREATE DATABASE foobar', $this->_platform->getCreateDatabaseSQL('foobar'));
-        $this->assertEquals($dropDatabaseExpectation, $this->_platform->getDropDatabaseSQL('foobar'));
-        $this->assertEquals('DROP TABLE foobar', $this->_platform->getDropTableSQL('foobar'));
+        self::assertEquals('SELECT * FROM sys.databases', $this->_platform->getListDatabasesSQL());
+        self::assertEquals('CREATE DATABASE foobar', $this->_platform->getCreateDatabaseSQL('foobar'));
+        self::assertEquals($dropDatabaseExpectation, $this->_platform->getDropDatabaseSQL('foobar'));
+        self::assertEquals('DROP TABLE foobar', $this->_platform->getDropTableSQL('foobar'));
     }
 
     public function testGeneratesTypeDeclarationForIntegers()
     {
-        $this->assertEquals(
+        self::assertEquals(
                 'INT',
                 $this->_platform->getIntegerTypeDeclarationSQL(array())
         );
-        $this->assertEquals(
+        self::assertEquals(
                 'INT IDENTITY',
                 $this->_platform->getIntegerTypeDeclarationSQL(array('autoincrement' => true)
         ));
-        $this->assertEquals(
+        self::assertEquals(
                 'INT IDENTITY',
                 $this->_platform->getIntegerTypeDeclarationSQL(
                         array('autoincrement' => true, 'primary' => true)
@@ -111,23 +111,23 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
 
     public function testGeneratesTypeDeclarationsForStrings()
     {
-        $this->assertEquals(
+        self::assertEquals(
                 'NCHAR(10)',
                 $this->_platform->getVarcharTypeDeclarationSQL(
                         array('length' => 10, 'fixed' => true)
         ));
-        $this->assertEquals(
+        self::assertEquals(
                 'NVARCHAR(50)',
                 $this->_platform->getVarcharTypeDeclarationSQL(array('length' => 50)),
                 'Variable string declaration is not correct'
         );
-        $this->assertEquals(
+        self::assertEquals(
                 'NVARCHAR(255)',
                 $this->_platform->getVarcharTypeDeclarationSQL(array()),
                 'Long string declaration is not correct'
         );
-        $this->assertSame('VARCHAR(MAX)', $this->_platform->getClobTypeDeclarationSQL(array()));
-        $this->assertSame(
+        self::assertSame('VARCHAR(MAX)', $this->_platform->getClobTypeDeclarationSQL(array()));
+        self::assertSame(
             'VARCHAR(MAX)',
             $this->_platform->getClobTypeDeclarationSQL(array('length' => 5, 'fixed' => true))
         );
@@ -135,27 +135,27 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
 
     public function testPrefersIdentityColumns()
     {
-        $this->assertTrue($this->_platform->prefersIdentityColumns());
+        self::assertTrue($this->_platform->prefersIdentityColumns());
     }
 
     public function testSupportsIdentityColumns()
     {
-        $this->assertTrue($this->_platform->supportsIdentityColumns());
+        self::assertTrue($this->_platform->supportsIdentityColumns());
     }
 
     public function testSupportsCreateDropDatabase()
     {
-        $this->assertTrue($this->_platform->supportsCreateDropDatabase());
+        self::assertTrue($this->_platform->supportsCreateDropDatabase());
     }
 
     public function testSupportsSchemas()
     {
-        $this->assertTrue($this->_platform->supportsSchemas());
+        self::assertTrue($this->_platform->supportsSchemas());
     }
 
     public function testDoesNotSupportSavePoints()
     {
-        $this->assertTrue($this->_platform->supportsSavepoints());
+        self::assertTrue($this->_platform->supportsSavepoints());
     }
 
     public function getGenerateIndexSql()
@@ -178,7 +178,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
         $querySql = 'SELECT * FROM user';
         $alteredSql = 'SELECT TOP 10 * FROM user';
         $sql = $this->_platform->modifyLimitQuery($querySql, 10, 0);
-        $this->assertEquals(sprintf(self::$selectFromCtePattern, $alteredSql, 1, 10), $sql);
+        $this->expectCteWithMaxRowNum($alteredSql, 10, $sql);
     }
 
     public function testModifyLimitQueryWithEmptyOffset()
@@ -186,7 +186,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
         $querySql = 'SELECT * FROM user';
         $alteredSql = 'SELECT TOP 10 * FROM user';
         $sql = $this->_platform->modifyLimitQuery($querySql, 10);
-        $this->assertEquals(sprintf(self::$selectFromCtePattern, $alteredSql, 1, 10), $sql);
+        $this->expectCteWithMaxRowNum($alteredSql, 10, $sql);
     }
 
     public function testModifyLimitQueryWithOffset()
@@ -199,7 +199,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
         $alteredSql = 'SELECT TOP 15 * FROM user ORDER BY username DESC';
         $sql = $this->_platform->modifyLimitQuery($querySql, 10, 5);
 
-        $this->assertEquals(sprintf(self::$selectFromCtePattern, $alteredSql, 6, 15), $sql);
+        $this->expectCteWithMinAndMaxRowNums($alteredSql, 6, 15, $sql);
     }
 
     public function testModifyLimitQueryWithAscOrderBy()
@@ -208,7 +208,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
         $alteredSql = 'SELECT TOP 10 * FROM user ORDER BY username ASC';
         $sql = $this->_platform->modifyLimitQuery($querySql, 10);
 
-        $this->assertEquals(sprintf(self::$selectFromCtePattern, $alteredSql, 1, 10), $sql);
+        $this->expectCteWithMaxRowNum($alteredSql, 10, $sql);
     }
 
     public function testModifyLimitQueryWithLowercaseOrderBy()
@@ -216,7 +216,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
         $querySql = 'SELECT * FROM user order by username';
         $alteredSql = 'SELECT TOP 10 * FROM user order by username';
         $sql = $this->_platform->modifyLimitQuery($querySql, 10);
-        $this->assertEquals(sprintf(self::$selectFromCtePattern, $alteredSql, 1, 10), $sql);
+        $this->expectCteWithMaxRowNum($alteredSql, 10, $sql);
     }
 
     public function testModifyLimitQueryWithDescOrderBy()
@@ -224,7 +224,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
         $querySql = 'SELECT * FROM user ORDER BY username DESC';
         $alteredSql = 'SELECT TOP 10 * FROM user ORDER BY username DESC';
         $sql = $this->_platform->modifyLimitQuery($querySql, 10);
-        $this->assertEquals(sprintf(self::$selectFromCtePattern, $alteredSql, 1, 10), $sql);
+        $this->expectCteWithMaxRowNum($alteredSql, 10, $sql);
     }
 
     public function testModifyLimitQueryWithMultipleOrderBy()
@@ -232,7 +232,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
         $querySql = 'SELECT * FROM user ORDER BY username DESC, usereamil ASC';
         $alteredSql = 'SELECT TOP 10 * FROM user ORDER BY username DESC, usereamil ASC';
         $sql = $this->_platform->modifyLimitQuery($querySql, 10);
-        $this->assertEquals(sprintf(self::$selectFromCtePattern, $alteredSql, 1, 10), $sql);
+        $this->expectCteWithMaxRowNum($alteredSql, 10, $sql);
     }
 
     public function testModifyLimitQueryWithSubSelect()
@@ -240,7 +240,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
         $querySql = 'SELECT * FROM (SELECT u.id as uid, u.name as uname) dctrn_result';
         $alteredSql = 'SELECT TOP 10 * FROM (SELECT u.id as uid, u.name as uname) dctrn_result';
         $sql = $this->_platform->modifyLimitQuery($querySql, 10);
-        $this->assertEquals(sprintf(self::$selectFromCtePattern, $alteredSql, 1, 10), $sql);
+        $this->expectCteWithMaxRowNum($alteredSql, 10, $sql);
     }
 
     public function testModifyLimitQueryWithSubSelectAndOrder()
@@ -248,12 +248,12 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
         $querySql = 'SELECT * FROM (SELECT u.id as uid, u.name as uname ORDER BY u.name DESC) dctrn_result';
         $alteredSql = 'SELECT TOP 10 * FROM (SELECT u.id as uid, u.name as uname) dctrn_result';
         $sql = $this->_platform->modifyLimitQuery($querySql, 10);
-        $this->assertEquals(sprintf(self::$selectFromCtePattern, $alteredSql, 1, 10), $sql);
+        $this->expectCteWithMaxRowNum($alteredSql, 10, $sql);
 
         $querySql = 'SELECT * FROM (SELECT u.id, u.name ORDER BY u.name DESC) dctrn_result';
         $alteredSql = 'SELECT TOP 10 * FROM (SELECT u.id, u.name) dctrn_result';
         $sql = $this->_platform->modifyLimitQuery($querySql, 10);
-        $this->assertEquals(sprintf(self::$selectFromCtePattern, $alteredSql, 1, 10), $sql);
+        $this->expectCteWithMaxRowNum($alteredSql, 10, $sql);
     }
 
     public function testModifyLimitQueryWithSubSelectAndMultipleOrder()
@@ -265,17 +265,17 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
         $querySql = 'SELECT * FROM (SELECT u.id as uid, u.name as uname ORDER BY u.name DESC, id ASC) dctrn_result';
         $alteredSql = 'SELECT TOP 15 * FROM (SELECT u.id as uid, u.name as uname) dctrn_result';
         $sql = $this->_platform->modifyLimitQuery($querySql, 10, 5);
-        $this->assertEquals(sprintf(self::$selectFromCtePattern, $alteredSql, 6, 15), $sql);
+        $this->expectCteWithMinAndMaxRowNums($alteredSql, 6, 15, $sql);
 
         $querySql = 'SELECT * FROM (SELECT u.id uid, u.name uname ORDER BY u.name DESC, id ASC) dctrn_result';
         $alteredSql = 'SELECT TOP 15 * FROM (SELECT u.id uid, u.name uname) dctrn_result';
         $sql = $this->_platform->modifyLimitQuery($querySql, 10, 5);
-        $this->assertEquals(sprintf(self::$selectFromCtePattern, $alteredSql, 6, 15), $sql);
+        $this->expectCteWithMinAndMaxRowNums($alteredSql, 6, 15, $sql);
 
         $querySql = 'SELECT * FROM (SELECT u.id, u.name ORDER BY u.name DESC, id ASC) dctrn_result';
         $alteredSql = 'SELECT TOP 15 * FROM (SELECT u.id, u.name) dctrn_result';
         $sql = $this->_platform->modifyLimitQuery($querySql, 10, 5);
-        $this->assertEquals(sprintf(self::$selectFromCtePattern, $alteredSql, 6, 15), $sql);
+        $this->expectCteWithMinAndMaxRowNums($alteredSql, 6, 15, $sql);
     }
 
     public function testModifyLimitQueryWithFromColumnNames()
@@ -283,7 +283,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
         $querySql = 'SELECT a.fromFoo, fromBar FROM foo';
         $alteredSql = 'SELECT TOP 10 a.fromFoo, fromBar FROM foo';
         $sql = $this->_platform->modifyLimitQuery($querySql, 10);
-        $this->assertEquals(sprintf(self::$selectFromCtePattern, $alteredSql, 1, 10), $sql);
+        $this->expectCteWithMaxRowNum($alteredSql, 10, $sql);
     }
 
     /**
@@ -302,7 +302,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
         $alteredSql.= 'AND (table5.column5 = table6.column6) AND (table5.column5 = table7.column7) AND (table5.column5 = table8.column8) AND (table6.column6 = table7.column7) AND (table6.column6 = table8.column8) AND (table7.column7 = table8.column8)';
 
         $sql = $this->_platform->modifyLimitQuery($query, 10);
-        $this->assertEquals(sprintf(self::$selectFromCtePattern, $alteredSql, 1, 10), $sql);
+        $this->expectCteWithMaxRowNum($alteredSql, 10, $sql);
     }
 
     /**
@@ -318,7 +318,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
         $alteredSql = 'SELECT TOP 15 m0_.NOMBRE AS NOMBRE0, m0_.FECHAINICIO AS FECHAINICIO1, m0_.FECHAFIN AS FECHAFIN2 FROM MEDICION m0_ WITH (NOLOCK) INNER JOIN ESTUDIO e1_ ON m0_.ESTUDIO_ID = e1_.ID INNER JOIN CLIENTE c2_ ON e1_.CLIENTE_ID = c2_.ID INNER JOIN USUARIO u3_ ON c2_.ID = u3_.CLIENTE_ID WHERE u3_.ID = ? ORDER BY m0_.FECHAINICIO DESC';
         $actual     = $this->_platform->modifyLimitQuery($sql, 10, 5);
 
-        $this->assertEquals(sprintf(self::$selectFromCtePattern, $alteredSql, 6, 15), $actual);
+        $this->expectCteWithMinAndMaxRowNums($alteredSql, 6, 15, $actual);
     }
 
     /**
@@ -342,7 +342,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
             "WHERE u.status = 'disabled'";
         $sql = $this->_platform->modifyLimitQuery($querySql, 10);
 
-        $this->assertEquals(sprintf(self::$selectFromCtePattern, $alteredSql, 1, 10), $sql);
+        $this->expectCteWithMaxRowNum($alteredSql, 10, $sql);
     }
 
     /**
@@ -371,7 +371,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
             "WHERE u.status = 'disabled' " .
             "ORDER BY u.username DESC";
         $sql = $this->_platform->modifyLimitQuery($querySql, 10, 5);
-        $this->assertEquals(sprintf(self::$selectFromCtePattern, $alteredSql, 6, 15), $sql);
+        $this->expectCteWithMinAndMaxRowNums($alteredSql, 6, 15, $sql);
     }
 
     /**
@@ -392,7 +392,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
             "GROUP BY code " .
             "ORDER BY MAX(heading_id) DESC";
         $sql = $this->_platform->modifyLimitQuery($querySql, 1, 0);
-        $this->assertEquals(sprintf(self::$selectFromCtePattern, $alteredSql, 1, 1), $sql);
+        $this->expectCteWithMaxRowNum($alteredSql, 1, $sql);
     }
 
     /**
@@ -416,9 +416,8 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
             . ") dctrn_result "
             . "ORDER BY id_0 ASC";
         $sql = $this->_platform->modifyLimitQuery($querySql, 5);
-        $this->assertEquals(sprintf(self::$selectFromCtePattern, $alteredSql, 1, 5), $sql);
+        $this->expectCteWithMaxRowNum($alteredSql, 5, $sql);
     }
-
 
     /**
      * @throws \Doctrine\DBAL\DBALException
@@ -441,7 +440,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
             . ") dctrn_result "
             . "ORDER BY name_1 ASC";
         $sql = $this->_platform->modifyLimitQuery($querySql, 5);
-        $this->assertEquals(sprintf(self::$selectFromCtePattern, $alteredSql, 1, 5), $sql);
+        $this->expectCteWithMaxRowNum($alteredSql, 5, $sql);
     }
 
     /**
@@ -465,7 +464,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
             . ") dctrn_result "
             . "ORDER BY name_1 ASC, foo_2 DESC";
         $sql = $this->_platform->modifyLimitQuery($querySql, 5);
-        $this->assertEquals(sprintf(self::$selectFromCtePattern, $alteredSql, 1, 5), $sql);
+        $this->expectCteWithMaxRowNum($alteredSql, 5, $sql);
     }
 
     public function testModifyLimitSubquerySimple()
@@ -476,7 +475,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
         $alteredSql = "SELECT DISTINCT TOP 20 id_0 FROM (SELECT k0_.id AS id_0, k0_.field AS field_1 "
             . "FROM key_table k0_ WHERE (k0_.where_field IN (1))) dctrn_result";
         $sql = $this->_platform->modifyLimitQuery($querySql, 20);
-        $this->assertEquals(sprintf(self::$selectFromCtePattern, $alteredSql, 1, 20), $sql);
+        $this->expectCteWithMaxRowNum($alteredSql, 20, $sql);
     }
 
     /**
@@ -484,9 +483,9 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
      */
     public function testQuoteIdentifier()
     {
-        $this->assertEquals('[fo][o]', $this->_platform->quoteIdentifier('fo]o'));
-        $this->assertEquals('[test]', $this->_platform->quoteIdentifier('test'));
-        $this->assertEquals('[test].[test]', $this->_platform->quoteIdentifier('test.test'));
+        self::assertEquals('[fo][o]', $this->_platform->quoteIdentifier('fo]o'));
+        self::assertEquals('[test]', $this->_platform->quoteIdentifier('test'));
+        self::assertEquals('[test].[test]', $this->_platform->quoteIdentifier('test.test'));
     }
 
     /**
@@ -494,9 +493,9 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
      */
     public function testQuoteSingleIdentifier()
     {
-        $this->assertEquals('[fo][o]', $this->_platform->quoteSingleIdentifier('fo]o'));
-        $this->assertEquals('[test]', $this->_platform->quoteSingleIdentifier('test'));
-        $this->assertEquals('[test.test]', $this->_platform->quoteSingleIdentifier('test.test'));
+        self::assertEquals('[fo][o]', $this->_platform->quoteSingleIdentifier('fo]o'));
+        self::assertEquals('[test]', $this->_platform->quoteSingleIdentifier('test'));
+        self::assertEquals('[test.test]', $this->_platform->quoteSingleIdentifier('test.test'));
     }
 
     /**
@@ -506,7 +505,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
     {
         $idx = new \Doctrine\DBAL\Schema\Index('idx', array('id'));
         $idx->addFlag('clustered');
-        $this->assertEquals('CREATE CLUSTERED INDEX idx ON tbl (id)', $this->_platform->getCreateIndexSQL($idx, 'tbl'));
+        self::assertEquals('CREATE CLUSTERED INDEX idx ON tbl (id)', $this->_platform->getCreateIndexSQL($idx, 'tbl'));
     }
 
     /**
@@ -519,7 +518,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
         $table->setPrimaryKey(Array("id"));
         $table->getIndex('primary')->addFlag('nonclustered');
 
-        $this->assertEquals(array('CREATE TABLE tbl (id INT NOT NULL, PRIMARY KEY NONCLUSTERED (id))'), $this->_platform->getCreateTableSQL($table));
+        self::assertEquals(array('CREATE TABLE tbl (id INT NOT NULL, PRIMARY KEY NONCLUSTERED (id))'), $this->_platform->getCreateTableSQL($table));
     }
 
     /**
@@ -529,13 +528,13 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
     {
         $idx = new \Doctrine\DBAL\Schema\Index('idx', array('id'), false, true);
         $idx->addFlag('nonclustered');
-        $this->assertEquals('ALTER TABLE tbl ADD PRIMARY KEY NONCLUSTERED (id)', $this->_platform->getCreatePrimaryKeySQL($idx, 'tbl'));
+        self::assertEquals('ALTER TABLE tbl ADD PRIMARY KEY NONCLUSTERED (id)', $this->_platform->getCreatePrimaryKeySQL($idx, 'tbl'));
     }
 
     public function testAlterAddPrimaryKey()
     {
         $idx = new \Doctrine\DBAL\Schema\Index('idx', array('id'), false, true);
-        $this->assertEquals('ALTER TABLE tbl ADD PRIMARY KEY (id)', $this->_platform->getCreateIndexSQL($idx, 'tbl'));
+        self::assertEquals('ALTER TABLE tbl ADD PRIMARY KEY (id)', $this->_platform->getCreateIndexSQL($idx, 'tbl'));
     }
 
     protected function getQuotedColumnInPrimaryKeySQL()
@@ -575,7 +574,64 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
     {
         $schemaName = 'schema';
         $sql = $this->_platform->getCreateSchemaSQL($schemaName);
-        $this->assertEquals('CREATE SCHEMA ' . $schemaName, $sql);
+        self::assertEquals('CREATE SCHEMA ' . $schemaName, $sql);
+    }
+
+    public function testCreateTableWithSchemaColumnComments()
+    {
+        $table = new Table('testschema.test');
+        $table->addColumn('id', 'integer', ['comment' => 'This is a comment']);
+        $table->setPrimaryKey(['id']);
+
+        $expectedSql = [
+            'CREATE TABLE testschema.test (id INT NOT NULL, PRIMARY KEY (id))',
+            "EXEC sp_addextendedproperty N'MS_Description', N'This is a comment', N'SCHEMA', 'testschema', N'TABLE', 'test', N'COLUMN', id",
+        ];
+
+        self::assertEquals($expectedSql, $this->_platform->getCreateTableSQL($table));
+    }
+
+    public function testAlterTableWithSchemaColumnComments()
+    {
+        $tableDiff                        = new TableDiff('testschema.mytable');
+        $tableDiff->addedColumns['quota'] = new Column('quota', Type::getType('integer'), ['comment' => 'A comment']);
+
+        $expectedSql = [
+            'ALTER TABLE testschema.mytable ADD quota INT NOT NULL',
+            "EXEC sp_addextendedproperty N'MS_Description', N'A comment', N'SCHEMA', 'testschema', N'TABLE', 'mytable', N'COLUMN', quota",
+        ];
+
+        self::assertEquals($expectedSql, $this->_platform->getAlterTableSQL($tableDiff));
+    }
+
+    public function testAlterTableWithSchemaDropColumnComments()
+    {
+        $tableDiff                          = new TableDiff('testschema.mytable');
+        $tableDiff->changedColumns['quota'] = new ColumnDiff(
+            'quota',
+            new Column('quota', Type::getType('integer'), []),
+            ['comment'],
+            new Column('quota', Type::getType('integer'), ['comment' => 'A comment'])
+        );
+
+        $expectedSql = ["EXEC sp_dropextendedproperty N'MS_Description', N'SCHEMA', 'testschema', N'TABLE', 'mytable', N'COLUMN', quota"];
+
+        self::assertEquals($expectedSql, $this->_platform->getAlterTableSQL($tableDiff));
+    }
+
+    public function testAlterTableWithSchemaUpdateColumnComments()
+    {
+        $tableDiff                          = new TableDiff('testschema.mytable');
+        $tableDiff->changedColumns['quota'] = new ColumnDiff(
+            'quota',
+            new Column('quota', Type::getType('integer'), ['comment' => 'B comment']),
+            ['comment'],
+            new Column('quota', Type::getType('integer'), ['comment' => 'A comment'])
+        );
+
+        $expectedSql = ["EXEC sp_updateextendedproperty N'MS_Description', N'B comment', N'SCHEMA', 'testschema', N'TABLE', 'mytable', N'COLUMN', quota"];
+
+        self::assertEquals($expectedSql, $this->_platform->getAlterTableSQL($tableDiff));
     }
 
     /**
@@ -585,7 +641,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
     {
         return array(
             "CREATE TABLE test (id INT NOT NULL, PRIMARY KEY (id))",
-            "EXEC sp_addextendedproperty N'MS_Description', N'This is a comment', N'SCHEMA', dbo, N'TABLE', test, N'COLUMN', id",
+            "EXEC sp_addextendedproperty N'MS_Description', N'This is a comment', N'SCHEMA', 'dbo', N'TABLE', 'test', N'COLUMN', id",
         );
     }
 
@@ -596,7 +652,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
     {
         return array(
             "ALTER TABLE mytable ADD quota INT NOT NULL",
-            "EXEC sp_addextendedproperty N'MS_Description', N'A comment', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', quota",
+            "EXEC sp_addextendedproperty N'MS_Description', N'A comment', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', quota",
             // todo
             //"EXEC sp_addextendedproperty N'MS_Description', N'B comment', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', baz",
         );
@@ -609,7 +665,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
     {
         return array(
             "CREATE TABLE test (id INT NOT NULL, data VARCHAR(MAX) NOT NULL, PRIMARY KEY (id))",
-            "EXEC sp_addextendedproperty N'MS_Description', N'(DC2Type:array)', N'SCHEMA', dbo, N'TABLE', test, N'COLUMN', data",
+            "EXEC sp_addextendedproperty N'MS_Description', N'(DC2Type:array)', N'SCHEMA', 'dbo', N'TABLE', 'test', N'COLUMN', data",
         );
     }
 
@@ -634,18 +690,18 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
         $table->addColumn('comment_with_string_literal_char', 'string', array('comment' => "O'Reilly"));
         $table->setPrimaryKey(array('id'));
 
-        $this->assertEquals(
+        self::assertEquals(
             array(
                 "CREATE TABLE mytable (id INT IDENTITY NOT NULL, comment_null INT NOT NULL, comment_false INT NOT NULL, comment_empty_string INT NOT NULL, comment_integer_0 INT NOT NULL, comment_float_0 INT NOT NULL, comment_string_0 INT NOT NULL, comment INT NOT NULL, [comment_quoted] INT NOT NULL, [create] INT NOT NULL, commented_type VARCHAR(MAX) NOT NULL, commented_type_with_comment VARCHAR(MAX) NOT NULL, comment_with_string_literal_char NVARCHAR(255) NOT NULL, PRIMARY KEY (id))",
-                "EXEC sp_addextendedproperty N'MS_Description', N'0', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', comment_integer_0",
-                "EXEC sp_addextendedproperty N'MS_Description', N'0', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', comment_float_0",
-                "EXEC sp_addextendedproperty N'MS_Description', N'0', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', comment_string_0",
-                "EXEC sp_addextendedproperty N'MS_Description', N'Doctrine 0wnz you!', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', comment",
-                "EXEC sp_addextendedproperty N'MS_Description', N'Doctrine 0wnz comments for explicitly quoted columns!', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', [comment_quoted]",
-                "EXEC sp_addextendedproperty N'MS_Description', N'Doctrine 0wnz comments for reserved keyword columns!', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', [create]",
-                "EXEC sp_addextendedproperty N'MS_Description', N'(DC2Type:object)', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', commented_type",
-                "EXEC sp_addextendedproperty N'MS_Description', N'Doctrine array type.(DC2Type:array)', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', commented_type_with_comment",
-                "EXEC sp_addextendedproperty N'MS_Description', N'O''Reilly', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', comment_with_string_literal_char",
+                "EXEC sp_addextendedproperty N'MS_Description', N'0', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', comment_integer_0",
+                "EXEC sp_addextendedproperty N'MS_Description', N'0', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', comment_float_0",
+                "EXEC sp_addextendedproperty N'MS_Description', N'0', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', comment_string_0",
+                "EXEC sp_addextendedproperty N'MS_Description', N'Doctrine 0wnz you!', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', comment",
+                "EXEC sp_addextendedproperty N'MS_Description', N'Doctrine 0wnz comments for explicitly quoted columns!', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', [comment_quoted]",
+                "EXEC sp_addextendedproperty N'MS_Description', N'Doctrine 0wnz comments for reserved keyword columns!', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', [create]",
+                "EXEC sp_addextendedproperty N'MS_Description', N'(DC2Type:object)', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', commented_type",
+                "EXEC sp_addextendedproperty N'MS_Description', N'Doctrine array type.(DC2Type:array)', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', commented_type_with_comment",
+                "EXEC sp_addextendedproperty N'MS_Description', N'O''Reilly', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', comment_with_string_literal_char",
             ),
             $this->_platform->getCreateTableSQL($table)
         );
@@ -781,7 +837,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
 
         $tableDiff->removedColumns['comment_integer_0'] = new Column('comment_integer_0', Type::getType('integer'), array('comment' => 0));
 
-        $this->assertEquals(
+        self::assertEquals(
             array(
                 // Renamed columns.
                 "sp_RENAME 'mytable.comment_float_0', 'comment_double_0', 'COLUMN'",
@@ -808,27 +864,27 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
                 "ALTER TABLE mytable ALTER COLUMN commented_type INT NOT NULL",
 
                 // Added columns.
-                "EXEC sp_addextendedproperty N'MS_Description', N'0', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', added_comment_integer_0",
-                "EXEC sp_addextendedproperty N'MS_Description', N'0', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', added_comment_float_0",
-                "EXEC sp_addextendedproperty N'MS_Description', N'0', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', added_comment_string_0",
-                "EXEC sp_addextendedproperty N'MS_Description', N'Doctrine', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', added_comment",
-                "EXEC sp_addextendedproperty N'MS_Description', N'rulez', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', [added_comment_quoted]",
-                "EXEC sp_addextendedproperty N'MS_Description', N'666', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', [select]",
-                "EXEC sp_addextendedproperty N'MS_Description', N'(DC2Type:object)', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', added_commented_type",
-                "EXEC sp_addextendedproperty N'MS_Description', N'666(DC2Type:array)', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', added_commented_type_with_comment",
-                "EXEC sp_addextendedproperty N'MS_Description', N'''''', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', added_comment_with_string_literal_char",
+                "EXEC sp_addextendedproperty N'MS_Description', N'0', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', added_comment_integer_0",
+                "EXEC sp_addextendedproperty N'MS_Description', N'0', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', added_comment_float_0",
+                "EXEC sp_addextendedproperty N'MS_Description', N'0', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', added_comment_string_0",
+                "EXEC sp_addextendedproperty N'MS_Description', N'Doctrine', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', added_comment",
+                "EXEC sp_addextendedproperty N'MS_Description', N'rulez', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', [added_comment_quoted]",
+                "EXEC sp_addextendedproperty N'MS_Description', N'666', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', [select]",
+                "EXEC sp_addextendedproperty N'MS_Description', N'(DC2Type:object)', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', added_commented_type",
+                "EXEC sp_addextendedproperty N'MS_Description', N'666(DC2Type:array)', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', added_commented_type_with_comment",
+                "EXEC sp_addextendedproperty N'MS_Description', N'''''', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', added_comment_with_string_literal_char",
 
                 // Changed columns.
-                "EXEC sp_addextendedproperty N'MS_Description', N'primary', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', id",
-                "EXEC sp_addextendedproperty N'MS_Description', N'false', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', comment_false",
-                "EXEC sp_addextendedproperty N'MS_Description', N'(DC2Type:object)', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', comment_empty_string",
-                "EXEC sp_dropextendedproperty N'MS_Description', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', comment_string_0",
-                "EXEC sp_dropextendedproperty N'MS_Description', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', comment",
-                "EXEC sp_updateextendedproperty N'MS_Description', N'Doctrine array.(DC2Type:array)', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', [comment_quoted]",
-                "EXEC sp_updateextendedproperty N'MS_Description', N'(DC2Type:object)', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', [create]",
-                "EXEC sp_updateextendedproperty N'MS_Description', N'foo', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', commented_type",
-                "EXEC sp_updateextendedproperty N'MS_Description', N'(DC2Type:array)', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', commented_type_with_comment",
-                "EXEC sp_updateextendedproperty N'MS_Description', N'''', N'SCHEMA', dbo, N'TABLE', mytable, N'COLUMN', comment_with_string_literal_char",
+                "EXEC sp_addextendedproperty N'MS_Description', N'primary', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', id",
+                "EXEC sp_addextendedproperty N'MS_Description', N'false', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', comment_false",
+                "EXEC sp_addextendedproperty N'MS_Description', N'(DC2Type:object)', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', comment_empty_string",
+                "EXEC sp_dropextendedproperty N'MS_Description', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', comment_string_0",
+                "EXEC sp_dropextendedproperty N'MS_Description', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', comment",
+                "EXEC sp_updateextendedproperty N'MS_Description', N'Doctrine array.(DC2Type:array)', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', [comment_quoted]",
+                "EXEC sp_updateextendedproperty N'MS_Description', N'(DC2Type:object)', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', [create]",
+                "EXEC sp_updateextendedproperty N'MS_Description', N'foo', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', commented_type",
+                "EXEC sp_updateextendedproperty N'MS_Description', N'(DC2Type:array)', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', commented_type_with_comment",
+                "EXEC sp_updateextendedproperty N'MS_Description', N'''', N'SCHEMA', 'dbo', N'TABLE', 'mytable', N'COLUMN', comment_with_string_literal_char",
             ),
             $this->_platform->getAlterTableSQL($tableDiff)
         );
@@ -839,80 +895,80 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
      */
     public function testInitializesDoctrineTypeMappings()
     {
-        $this->assertTrue($this->_platform->hasDoctrineTypeMappingFor('bigint'));
-        $this->assertSame('bigint', $this->_platform->getDoctrineTypeMapping('bigint'));
+        self::assertTrue($this->_platform->hasDoctrineTypeMappingFor('bigint'));
+        self::assertSame('bigint', $this->_platform->getDoctrineTypeMapping('bigint'));
 
-        $this->assertTrue($this->_platform->hasDoctrineTypeMappingFor('numeric'));
-        $this->assertSame('decimal', $this->_platform->getDoctrineTypeMapping('numeric'));
+        self::assertTrue($this->_platform->hasDoctrineTypeMappingFor('numeric'));
+        self::assertSame('decimal', $this->_platform->getDoctrineTypeMapping('numeric'));
 
-        $this->assertTrue($this->_platform->hasDoctrineTypeMappingFor('bit'));
-        $this->assertSame('boolean', $this->_platform->getDoctrineTypeMapping('bit'));
+        self::assertTrue($this->_platform->hasDoctrineTypeMappingFor('bit'));
+        self::assertSame('boolean', $this->_platform->getDoctrineTypeMapping('bit'));
 
-        $this->assertTrue($this->_platform->hasDoctrineTypeMappingFor('smallint'));
-        $this->assertSame('smallint', $this->_platform->getDoctrineTypeMapping('smallint'));
+        self::assertTrue($this->_platform->hasDoctrineTypeMappingFor('smallint'));
+        self::assertSame('smallint', $this->_platform->getDoctrineTypeMapping('smallint'));
 
-        $this->assertTrue($this->_platform->hasDoctrineTypeMappingFor('decimal'));
-        $this->assertSame('decimal', $this->_platform->getDoctrineTypeMapping('decimal'));
+        self::assertTrue($this->_platform->hasDoctrineTypeMappingFor('decimal'));
+        self::assertSame('decimal', $this->_platform->getDoctrineTypeMapping('decimal'));
 
-        $this->assertTrue($this->_platform->hasDoctrineTypeMappingFor('smallmoney'));
-        $this->assertSame('integer', $this->_platform->getDoctrineTypeMapping('smallmoney'));
+        self::assertTrue($this->_platform->hasDoctrineTypeMappingFor('smallmoney'));
+        self::assertSame('integer', $this->_platform->getDoctrineTypeMapping('smallmoney'));
 
-        $this->assertTrue($this->_platform->hasDoctrineTypeMappingFor('int'));
-        $this->assertSame('integer', $this->_platform->getDoctrineTypeMapping('int'));
+        self::assertTrue($this->_platform->hasDoctrineTypeMappingFor('int'));
+        self::assertSame('integer', $this->_platform->getDoctrineTypeMapping('int'));
 
-        $this->assertTrue($this->_platform->hasDoctrineTypeMappingFor('tinyint'));
-        $this->assertSame('smallint', $this->_platform->getDoctrineTypeMapping('tinyint'));
+        self::assertTrue($this->_platform->hasDoctrineTypeMappingFor('tinyint'));
+        self::assertSame('smallint', $this->_platform->getDoctrineTypeMapping('tinyint'));
 
-        $this->assertTrue($this->_platform->hasDoctrineTypeMappingFor('money'));
-        $this->assertSame('integer', $this->_platform->getDoctrineTypeMapping('money'));
+        self::assertTrue($this->_platform->hasDoctrineTypeMappingFor('money'));
+        self::assertSame('integer', $this->_platform->getDoctrineTypeMapping('money'));
 
-        $this->assertTrue($this->_platform->hasDoctrineTypeMappingFor('float'));
-        $this->assertSame('float', $this->_platform->getDoctrineTypeMapping('float'));
+        self::assertTrue($this->_platform->hasDoctrineTypeMappingFor('float'));
+        self::assertSame('float', $this->_platform->getDoctrineTypeMapping('float'));
 
-        $this->assertTrue($this->_platform->hasDoctrineTypeMappingFor('real'));
-        $this->assertSame('float', $this->_platform->getDoctrineTypeMapping('real'));
+        self::assertTrue($this->_platform->hasDoctrineTypeMappingFor('real'));
+        self::assertSame('float', $this->_platform->getDoctrineTypeMapping('real'));
 
-        $this->assertTrue($this->_platform->hasDoctrineTypeMappingFor('double'));
-        $this->assertSame('float', $this->_platform->getDoctrineTypeMapping('double'));
+        self::assertTrue($this->_platform->hasDoctrineTypeMappingFor('double'));
+        self::assertSame('float', $this->_platform->getDoctrineTypeMapping('double'));
 
-        $this->assertTrue($this->_platform->hasDoctrineTypeMappingFor('double precision'));
-        $this->assertSame('float', $this->_platform->getDoctrineTypeMapping('double precision'));
+        self::assertTrue($this->_platform->hasDoctrineTypeMappingFor('double precision'));
+        self::assertSame('float', $this->_platform->getDoctrineTypeMapping('double precision'));
 
-        $this->assertTrue($this->_platform->hasDoctrineTypeMappingFor('smalldatetime'));
-        $this->assertSame('datetime', $this->_platform->getDoctrineTypeMapping('smalldatetime'));
+        self::assertTrue($this->_platform->hasDoctrineTypeMappingFor('smalldatetime'));
+        self::assertSame('datetime', $this->_platform->getDoctrineTypeMapping('smalldatetime'));
 
-        $this->assertTrue($this->_platform->hasDoctrineTypeMappingFor('datetime'));
-        $this->assertSame('datetime', $this->_platform->getDoctrineTypeMapping('datetime'));
+        self::assertTrue($this->_platform->hasDoctrineTypeMappingFor('datetime'));
+        self::assertSame('datetime', $this->_platform->getDoctrineTypeMapping('datetime'));
 
-        $this->assertTrue($this->_platform->hasDoctrineTypeMappingFor('char'));
-        $this->assertSame('string', $this->_platform->getDoctrineTypeMapping('char'));
+        self::assertTrue($this->_platform->hasDoctrineTypeMappingFor('char'));
+        self::assertSame('string', $this->_platform->getDoctrineTypeMapping('char'));
 
-        $this->assertTrue($this->_platform->hasDoctrineTypeMappingFor('varchar'));
-        $this->assertSame('string', $this->_platform->getDoctrineTypeMapping('varchar'));
+        self::assertTrue($this->_platform->hasDoctrineTypeMappingFor('varchar'));
+        self::assertSame('string', $this->_platform->getDoctrineTypeMapping('varchar'));
 
-        $this->assertTrue($this->_platform->hasDoctrineTypeMappingFor('text'));
-        $this->assertSame('text', $this->_platform->getDoctrineTypeMapping('text'));
+        self::assertTrue($this->_platform->hasDoctrineTypeMappingFor('text'));
+        self::assertSame('text', $this->_platform->getDoctrineTypeMapping('text'));
 
-        $this->assertTrue($this->_platform->hasDoctrineTypeMappingFor('nchar'));
-        $this->assertSame('string', $this->_platform->getDoctrineTypeMapping('nchar'));
+        self::assertTrue($this->_platform->hasDoctrineTypeMappingFor('nchar'));
+        self::assertSame('string', $this->_platform->getDoctrineTypeMapping('nchar'));
 
-        $this->assertTrue($this->_platform->hasDoctrineTypeMappingFor('nvarchar'));
-        $this->assertSame('string', $this->_platform->getDoctrineTypeMapping('nvarchar'));
+        self::assertTrue($this->_platform->hasDoctrineTypeMappingFor('nvarchar'));
+        self::assertSame('string', $this->_platform->getDoctrineTypeMapping('nvarchar'));
 
-        $this->assertTrue($this->_platform->hasDoctrineTypeMappingFor('ntext'));
-        $this->assertSame('text', $this->_platform->getDoctrineTypeMapping('ntext'));
+        self::assertTrue($this->_platform->hasDoctrineTypeMappingFor('ntext'));
+        self::assertSame('text', $this->_platform->getDoctrineTypeMapping('ntext'));
 
-        $this->assertTrue($this->_platform->hasDoctrineTypeMappingFor('binary'));
-        $this->assertSame('binary', $this->_platform->getDoctrineTypeMapping('binary'));
+        self::assertTrue($this->_platform->hasDoctrineTypeMappingFor('binary'));
+        self::assertSame('binary', $this->_platform->getDoctrineTypeMapping('binary'));
 
-        $this->assertTrue($this->_platform->hasDoctrineTypeMappingFor('varbinary'));
-        $this->assertSame('binary', $this->_platform->getDoctrineTypeMapping('varbinary'));
+        self::assertTrue($this->_platform->hasDoctrineTypeMappingFor('varbinary'));
+        self::assertSame('binary', $this->_platform->getDoctrineTypeMapping('varbinary'));
 
-        $this->assertTrue($this->_platform->hasDoctrineTypeMappingFor('image'));
-        $this->assertSame('blob', $this->_platform->getDoctrineTypeMapping('image'));
+        self::assertTrue($this->_platform->hasDoctrineTypeMappingFor('image'));
+        self::assertSame('blob', $this->_platform->getDoctrineTypeMapping('image'));
 
-        $this->assertTrue($this->_platform->hasDoctrineTypeMappingFor('uniqueidentifier'));
-        $this->assertSame('guid', $this->_platform->getDoctrineTypeMapping('uniqueidentifier'));
+        self::assertTrue($this->_platform->hasDoctrineTypeMappingFor('uniqueidentifier'));
+        self::assertSame('guid', $this->_platform->getDoctrineTypeMapping('uniqueidentifier'));
     }
 
     protected function getBinaryMaxLength()
@@ -922,15 +978,15 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
 
     public function testReturnsBinaryTypeDeclarationSQL()
     {
-        $this->assertSame('VARBINARY(255)', $this->_platform->getBinaryTypeDeclarationSQL(array()));
-        $this->assertSame('VARBINARY(255)', $this->_platform->getBinaryTypeDeclarationSQL(array('length' => 0)));
-        $this->assertSame('VARBINARY(8000)', $this->_platform->getBinaryTypeDeclarationSQL(array('length' => 8000)));
-        $this->assertSame('VARBINARY(MAX)', $this->_platform->getBinaryTypeDeclarationSQL(array('length' => 8001)));
+        self::assertSame('VARBINARY(255)', $this->_platform->getBinaryTypeDeclarationSQL(array()));
+        self::assertSame('VARBINARY(255)', $this->_platform->getBinaryTypeDeclarationSQL(array('length' => 0)));
+        self::assertSame('VARBINARY(8000)', $this->_platform->getBinaryTypeDeclarationSQL(array('length' => 8000)));
+        self::assertSame('VARBINARY(MAX)', $this->_platform->getBinaryTypeDeclarationSQL(array('length' => 8001)));
 
-        $this->assertSame('BINARY(255)', $this->_platform->getBinaryTypeDeclarationSQL(array('fixed' => true)));
-        $this->assertSame('BINARY(255)', $this->_platform->getBinaryTypeDeclarationSQL(array('fixed' => true, 'length' => 0)));
-        $this->assertSame('BINARY(8000)', $this->_platform->getBinaryTypeDeclarationSQL(array('fixed' => true, 'length' => 8000)));
-        $this->assertSame('VARBINARY(MAX)', $this->_platform->getBinaryTypeDeclarationSQL(array('fixed' => true, 'length' => 8001)));
+        self::assertSame('BINARY(255)', $this->_platform->getBinaryTypeDeclarationSQL(array('fixed' => true)));
+        self::assertSame('BINARY(255)', $this->_platform->getBinaryTypeDeclarationSQL(array('fixed' => true, 'length' => 0)));
+        self::assertSame('BINARY(8000)', $this->_platform->getBinaryTypeDeclarationSQL(array('fixed' => true, 'length' => 8000)));
+        self::assertSame('VARBINARY(MAX)', $this->_platform->getBinaryTypeDeclarationSQL(array('fixed' => true, 'length' => 8001)));
     }
 
     /**
@@ -983,7 +1039,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
 
         $expected = $this->_platform->getAlterTableSQL($tableDiff);
 
-        $this->assertSame(
+        self::assertSame(
             $expected,
             array(
                 'ALTER TABLE column_def_change_type DROP CONSTRAINT DF_829302E0_FA2CB292',
@@ -1059,7 +1115,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
      */
     public function testGeneratesIdentifierNamesInDefaultConstraintDeclarationSQL($table, $column, $expectedSql)
     {
-        $this->assertSame($expectedSql, $this->_platform->getDefaultConstraintDeclarationSQL($table, $column));
+        self::assertSame($expectedSql, $this->_platform->getDefaultConstraintDeclarationSQL($table, $column));
     }
 
     public function getGeneratesIdentifierNamesInDefaultConstraintDeclarationSQL()
@@ -1082,7 +1138,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
      */
     public function testGeneratesIdentifierNamesInCreateTableSQL($table, $expectedSql)
     {
-        $this->assertSame($expectedSql, $this->_platform->getCreateTableSQL($table));
+        self::assertSame($expectedSql, $this->_platform->getCreateTableSQL($table));
     }
 
     public function getGeneratesIdentifierNamesInCreateTableSQL()
@@ -1129,7 +1185,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
      */
     public function testGeneratesIdentifierNamesInAlterTableSQL($tableDiff, $expectedSql)
     {
-        $this->assertSame($expectedSql, $this->_platform->getAlterTableSQL($tableDiff));
+        self::assertSame($expectedSql, $this->_platform->getAlterTableSQL($tableDiff));
     }
 
     public function getGeneratesIdentifierNamesInAlterTableSQL()
@@ -1239,7 +1295,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
      */
     public function testReturnsGuidTypeDeclarationSQL()
     {
-        $this->assertSame('UNIQUEIDENTIFIER', $this->_platform->getGuidTypeDeclarationSQL(array()));
+        self::assertSame('UNIQUEIDENTIFIER', $this->_platform->getGuidTypeDeclarationSQL(array()));
     }
 
     /**
@@ -1352,12 +1408,12 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
         $querySql = 'SELECT * FROM test t WHERE t.id = (SELECT TOP 1 t2.id FROM test t2 ORDER BY t2.data DESC)';
         $alteredSql = 'SELECT TOP 10 * FROM test t WHERE t.id = (SELECT TOP 1 t2.id FROM test t2 ORDER BY t2.data DESC)';
         $sql = $this->_platform->modifyLimitQuery($querySql, 10);
-        $this->assertEquals(sprintf(static::$selectFromCtePattern, $alteredSql, 1, 10), $sql);
+        $this->expectCteWithMaxRowNum($alteredSql, 10, $sql);
 
         $querySql = 'SELECT * FROM test t WHERE t.id = (SELECT TOP 1 t2.id FROM test t2 ORDER BY t2.data DESC) ORDER BY t.data2 DESC';
         $alteredSql = 'SELECT TOP 10 * FROM test t WHERE t.id = (SELECT TOP 1 t2.id FROM test t2 ORDER BY t2.data DESC) ORDER BY t.data2 DESC';
         $sql = $this->_platform->modifyLimitQuery($querySql, 10);
-        $this->assertEquals(sprintf(static::$selectFromCtePattern, $alteredSql, 1, 10), $sql);
+        $this->expectCteWithMaxRowNum($alteredSql, 10, $sql);
     }
 
     /**
@@ -1365,7 +1421,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
      */
     public function testQuotesTableNameInListTableColumnsSQL()
     {
-        $this->assertContains("'Foo''Bar\\'", $this->_platform->getListTableColumnsSQL("Foo'Bar\\"), '', true);
+        self::assertContains("'Foo''Bar\\'", $this->_platform->getListTableColumnsSQL("Foo'Bar\\"), '', true);
     }
 
     /**
@@ -1373,7 +1429,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
      */
     public function testQuotesSchemaNameInListTableColumnsSQL()
     {
-        $this->assertContains(
+        self::assertContains(
             "'Foo''Bar\\'",
             $this->_platform->getListTableColumnsSQL("Foo'Bar\\.baz_table"),
             '',
@@ -1386,7 +1442,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
      */
     public function testQuotesTableNameInListTableForeignKeysSQL()
     {
-        $this->assertContains("'Foo''Bar\\'", $this->_platform->getListTableForeignKeysSQL("Foo'Bar\\"), '', true);
+        self::assertContains("'Foo''Bar\\'", $this->_platform->getListTableForeignKeysSQL("Foo'Bar\\"), '', true);
     }
 
     /**
@@ -1394,7 +1450,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
      */
     public function testQuotesSchemaNameInListTableForeignKeysSQL()
     {
-        $this->assertContains(
+        self::assertContains(
             "'Foo''Bar\\'",
             $this->_platform->getListTableForeignKeysSQL("Foo'Bar\\.baz_table"),
             '',
@@ -1407,7 +1463,7 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
      */
     public function testQuotesTableNameInListTableIndexesSQL()
     {
-        $this->assertContains("'Foo''Bar\\'", $this->_platform->getListTableIndexesSQL("Foo'Bar\\"), '', true);
+        self::assertContains("'Foo''Bar\\'", $this->_platform->getListTableIndexesSQL("Foo'Bar\\"), '', true);
     }
 
     /**
@@ -1415,11 +1471,68 @@ abstract class AbstractSQLServerPlatformTestCase extends AbstractPlatformTestCas
      */
     public function testQuotesSchemaNameInListTableIndexesSQL()
     {
-        $this->assertContains(
+        self::assertContains(
             "'Foo''Bar\\'",
             $this->_platform->getListTableIndexesSQL("Foo'Bar\\.baz_table"),
             '',
             true
         );
+    }
+
+    /**
+     * @group 2859
+     */
+    public function testGetDefaultValueDeclarationSQLForDateType() : void
+    {
+        $currentDateSql = $this->_platform->getCurrentDateSQL();
+        foreach (['date', 'date_immutable'] as $type) {
+            $field = [
+                'type' => Type::getType($type),
+                'default' => $currentDateSql,
+            ];
+
+            self::assertSame(
+                " DEFAULT '" . $currentDateSql . "'",
+                $this->_platform->getDefaultValueDeclarationSQL($field)
+            );
+        }
+    }
+
+    public function testSupportsColumnCollation() : void
+    {
+        self::assertTrue($this->_platform->supportsColumnCollation());
+    }
+
+    public function testColumnCollationDeclarationSQL() : void
+    {
+        self::assertSame(
+            'COLLATE Latin1_General_CS_AS_KS_WS',
+            $this->_platform->getColumnCollationDeclarationSQL('Latin1_General_CS_AS_KS_WS')
+        );
+    }
+
+    public function testGetCreateTableSQLWithColumnCollation() : void
+    {
+        $table = new Table('foo');
+        $table->addColumn('no_collation', 'string');
+        $table->addColumn('column_collation', 'string')->setPlatformOption('collation', 'Latin1_General_CS_AS_KS_WS');
+
+        self::assertSame(
+            ['CREATE TABLE foo (no_collation NVARCHAR(255) NOT NULL, column_collation NVARCHAR(255) COLLATE Latin1_General_CS_AS_KS_WS NOT NULL)'],
+            $this->_platform->getCreateTableSQL($table),
+            'Column "no_collation" will use the default collation from the table/database and "column_collation" overwrites the collation on this column'
+        );
+    }
+
+    private function expectCteWithMaxRowNum(string $expectedSql, int $expectedMax, string $sql) : void
+    {
+        $pattern = 'WITH dctrn_cte AS (%s) SELECT * FROM (SELECT *, ROW_NUMBER() OVER (ORDER BY (SELECT 0)) AS doctrine_rownum FROM dctrn_cte) AS doctrine_tbl WHERE doctrine_rownum <= %d ORDER BY doctrine_rownum ASC';
+        self::assertEquals(sprintf($pattern, $expectedSql, $expectedMax), $sql);
+    }
+
+    private function expectCteWithMinAndMaxRowNums(string $expectedSql, int $expectedMin, int $expectedMax, string $sql) : void
+    {
+        $pattern = 'WITH dctrn_cte AS (%s) SELECT * FROM (SELECT *, ROW_NUMBER() OVER (ORDER BY (SELECT 0)) AS doctrine_rownum FROM dctrn_cte) AS doctrine_tbl WHERE doctrine_rownum >= %d AND doctrine_rownum <= %d ORDER BY doctrine_rownum ASC';
+        self::assertEquals(sprintf($pattern, $expectedSql, $expectedMin, $expectedMax), $sql);
     }
 }
