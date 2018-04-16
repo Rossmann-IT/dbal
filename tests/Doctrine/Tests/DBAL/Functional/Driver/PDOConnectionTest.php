@@ -4,6 +4,8 @@ namespace Doctrine\Tests\DBAL\Functional\Driver;
 
 use Doctrine\DBAL\Driver\PDOConnection;
 use Doctrine\Tests\DbalFunctionalTestCase;
+use function extension_loaded;
+use function sprintf;
 
 class PDOConnectionTest extends DbalFunctionalTestCase
 {
@@ -38,7 +40,7 @@ class PDOConnectionTest extends DbalFunctionalTestCase
 
     public function testDoesNotRequireQueryForServerVersion()
     {
-        $this->assertFalse($this->driverConnection->requiresQueryForServerVersion());
+        self::assertFalse($this->driverConnection->requiresQueryForServerVersion());
     }
 
     /**

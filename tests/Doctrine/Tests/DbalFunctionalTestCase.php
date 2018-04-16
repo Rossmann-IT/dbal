@@ -1,6 +1,16 @@
 <?php
 
 namespace Doctrine\Tests;
+use const PHP_EOL;
+use function array_map;
+use function array_reverse;
+use function count;
+use function get_class;
+use function implode;
+use function is_object;
+use function is_scalar;
+use function strpos;
+use function var_export;
 
 class DbalFunctionalTestCase extends DbalTestCase
 {
@@ -47,10 +57,10 @@ class DbalFunctionalTestCase extends DbalTestCase
         }
     }
 
-    protected function onNotSuccessfulTest($e)
+    protected function onNotSuccessfulTest(\Throwable $t)
     {
-        if ($e instanceof \PHPUnit_Framework_AssertionFailedError) {
-            throw $e;
+        if ($t instanceof \PHPUnit\Framework\AssertionFailedError) {
+            throw $t;
         }
 
         if(isset($this->_sqlLoggerStack->queries) && count($this->_sqlLoggerStack->queries)) {
@@ -62,15 +72,15 @@ class DbalFunctionalTestCase extends DbalTestCase
                         return get_class($p);
                     } elseif (is_scalar($p)) {
                         return "'".$p."'";
-                    } else {
-                        return var_export($p, true);
                     }
+
+                    return var_export($p, true);
                 }, $query['params'] ?: array());
                 $queries .= $i.". SQL: '".$query['sql']."' Params: ".implode(", ", $params).PHP_EOL;
                 $i--;
             }
 
-            $trace = $e->getTrace();
+            $trace = $t->getTrace();
             $traceMsg = "";
             foreach($trace as $part) {
                 if(isset($part['file'])) {
@@ -83,10 +93,10 @@ class DbalFunctionalTestCase extends DbalTestCase
                 }
             }
 
-            $message = "[".get_class($e)."] ".$e->getMessage().PHP_EOL.PHP_EOL."With queries:".PHP_EOL.$queries.PHP_EOL."Trace:".PHP_EOL.$traceMsg;
+            $message = "[".get_class($t)."] ".$t->getMessage().PHP_EOL.PHP_EOL."With queries:".PHP_EOL.$queries.PHP_EOL."Trace:".PHP_EOL.$traceMsg;
 
-            throw new \Exception($message, (int)$e->getCode(), $e);
+            throw new \Exception($message, (int) $t->getCode(), $t);
         }
-        throw $e;
+        throw $t;
     }
 }

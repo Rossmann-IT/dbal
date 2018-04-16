@@ -1,6 +1,8 @@
 <?php
 
 namespace Doctrine\Tests\DBAL\Functional\Ticket;
+use function in_array;
+use function preg_match;
 
 /**
  * @group DBAL-421
@@ -21,7 +23,7 @@ class DBAL421Test extends \Doctrine\Tests\DbalFunctionalTestCase
     {
         $guid = $this->_conn->query($this->getSelectGuidSql())->fetchColumn();
         $pattern = '/[0-9A-F]{8}\-[0-9A-F]{4}\-[0-9A-F]{4}\-[8-9A-B][0-9A-F]{3}\-[0-9A-F]{12}/i';
-        $this->assertEquals(1, preg_match($pattern, $guid), "GUID does not match pattern");
+        self::assertEquals(1, preg_match($pattern, $guid), "GUID does not match pattern");
     }
 
     /**
@@ -36,7 +38,7 @@ class DBAL421Test extends \Doctrine\Tests\DbalFunctionalTestCase
         for ($i = 0; $i < 99; $i++) {
             $statement->execute();
             $guid = $statement->fetchColumn();
-            $this->assertNotContains($guid, $guids, "Duplicate GUID detected");
+            self::assertNotContains($guid, $guids, "Duplicate GUID detected");
             $guids[] = $guid;
         }
 

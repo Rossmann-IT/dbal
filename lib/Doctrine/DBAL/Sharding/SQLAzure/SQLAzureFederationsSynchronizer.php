@@ -26,6 +26,7 @@ use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Schema\Synchronizer\AbstractSchemaSynchronizer;
 use Doctrine\DBAL\Schema\Synchronizer\SingleDatabaseSynchronizer;
 use Doctrine\DBAL\Schema\Synchronizer\SchemaSynchronizer;
+use function array_merge;
 
 /**
  * SQL Azure Schema Synchronizer.
@@ -191,7 +192,7 @@ class SQLAzureFederationsSynchronizer extends AbstractSchemaSynchronizer
 
     /**
      * @param \Doctrine\DBAL\Schema\Schema $schema
-     * @param boolean                      $isFederation
+     * @param bool                         $isFederation
      *
      * @return \Doctrine\DBAL\Schema\Schema
      *

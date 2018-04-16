@@ -3,6 +3,7 @@
 namespace Doctrine\Tests\DBAL\Driver;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Platforms\PostgreSQL100Platform;
 use Doctrine\DBAL\Platforms\PostgreSqlPlatform;
 use Doctrine\DBAL\Schema\PostgreSqlSchemaManager;
 
@@ -34,7 +35,7 @@ class AbstractPostgreSQLDriverTest extends AbstractDriverTest
             ->method('query')
             ->will($this->returnValue($statement));
 
-        $this->assertSame($database, $this->driver->getDatabase($connection));
+        self::assertSame($database, $this->driver->getDatabase($connection));
     }
 
     protected function createDriver()
@@ -67,7 +68,7 @@ class AbstractPostgreSQLDriverTest extends AbstractDriverTest
             array('9.4', 'Doctrine\DBAL\Platforms\PostgreSQL94Platform'),
             array('9.4.0', 'Doctrine\DBAL\Platforms\PostgreSQL94Platform'),
             array('9.4.1', 'Doctrine\DBAL\Platforms\PostgreSQL94Platform'),
-            array('10', 'Doctrine\DBAL\Platforms\PostgreSQL94Platform'),
+            array('10', PostgreSQL100Platform::class),
         );
     }
 

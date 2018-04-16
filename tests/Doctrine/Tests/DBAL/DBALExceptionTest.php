@@ -7,6 +7,9 @@ use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\DBAL\Driver\DriverException as InnerDriverException;
 use Doctrine\Tests\DbalTestCase;
 use Doctrine\DBAL\Driver;
+use function chr;
+use function fopen;
+use function sprintf;
 
 class DBALExceptionTest extends DbalTestCase
 {
@@ -15,7 +18,15 @@ class DBALExceptionTest extends DbalTestCase
         /* @var $driver Driver */
         $driver = $this->createMock(Driver::class);
         $e = DBALException::driverExceptionDuringQuery($driver, new \Exception, '', array('ABC', chr(128)));
-        $this->assertContains('with params ["ABC", "\x80"]', $e->getMessage());
+        self::assertContains('with params ["ABC", "\x80"]', $e->getMessage());
+    }
+    
+    public function testDriverExceptionDuringQueryAcceptsResource()
+    {
+        /* @var $driver Driver */
+        $driver = $this->createMock(Driver::class);
+        $e = \Doctrine\DBAL\DBALException::driverExceptionDuringQuery($driver, new \Exception, "INSERT INTO file (`content`) VALUES (?)", [1 => fopen(__FILE__, 'r')]);
+        self::assertContains('Resource', $e->getMessage());
     }
 
     public function testAvoidOverWrappingOnDriverException()
@@ -40,7 +51,7 @@ class DBALExceptionTest extends DbalTestCase
         };
         $ex = new DriverException('', $inner);
         $e = DBALException::driverExceptionDuringQuery($driver, $ex, '');
-        $this->assertSame($ex, $e);
+        self::assertSame($ex, $e);
     }
 
     public function testDriverRequiredWithUrl()
@@ -48,8 +59,8 @@ class DBALExceptionTest extends DbalTestCase
         $url = 'mysql://localhost';
         $exception = DBALException::driverRequired($url);
 
-        $this->assertInstanceOf(DBALException::class, $exception);
-        $this->assertSame(
+        self::assertInstanceOf(DBALException::class, $exception);
+        self::assertSame(
             sprintf(
                 "The options 'driver' or 'driverClass' are mandatory if a connection URL without scheme " .
                 'is given to DriverManager::getConnection(). Given URL: %s',

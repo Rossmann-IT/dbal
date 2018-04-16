@@ -3,6 +3,7 @@
 namespace Doctrine\Tests\DBAL\Driver\SQLAnywhere;
 
 use Doctrine\Tests\DbalTestCase;
+use function extension_loaded;
 
 class SQLAnywhereConnectionTest extends DbalTestCase
 {
@@ -28,6 +29,6 @@ class SQLAnywhereConnectionTest extends DbalTestCase
 
     public function testRequiresQueryForServerVersion()
     {
-        $this->assertTrue($this->connectionMock->requiresQueryForServerVersion());
+        self::assertTrue($this->connectionMock->requiresQueryForServerVersion());
     }
 }

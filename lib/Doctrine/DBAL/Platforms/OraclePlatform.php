@@ -26,7 +26,19 @@ use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
+use Doctrine\DBAL\TransactionIsolationLevel;
 use Doctrine\DBAL\Types\BinaryType;
+use function array_merge;
+use function count;
+use function explode;
+use function implode;
+use function preg_match;
+use function sprintf;
+use function str_replace;
+use function strlen;
+use function strpos;
+use function strtoupper;
+use function substr;
 
 /**
  * OraclePlatform.
@@ -106,15 +118,15 @@ class OraclePlatform extends AbstractPlatform
     protected function getDateArithmeticIntervalExpression($date, $operator, $interval, $unit)
     {
         switch ($unit) {
-            case self::DATE_INTERVAL_UNIT_MONTH:
-            case self::DATE_INTERVAL_UNIT_QUARTER:
-            case self::DATE_INTERVAL_UNIT_YEAR:
+            case DateIntervalUnit::MONTH:
+            case DateIntervalUnit::QUARTER:
+            case DateIntervalUnit::YEAR:
                 switch ($unit) {
-                    case self::DATE_INTERVAL_UNIT_QUARTER:
+                    case DateIntervalUnit::QUARTER:
                         $interval *= 3;
                         break;
 
-                    case self::DATE_INTERVAL_UNIT_YEAR:
+                    case DateIntervalUnit::YEAR:
                         $interval *= 12;
                         break;
                 }
@@ -125,19 +137,19 @@ class OraclePlatform extends AbstractPlatform
                 $calculationClause = '';
 
                 switch ($unit) {
-                    case self::DATE_INTERVAL_UNIT_SECOND:
+                    case DateIntervalUnit::SECOND:
                         $calculationClause = '/24/60/60';
                         break;
 
-                    case self::DATE_INTERVAL_UNIT_MINUTE:
+                    case DateIntervalUnit::MINUTE:
                         $calculationClause = '/24/60';
                         break;
 
-                    case self::DATE_INTERVAL_UNIT_HOUR:
+                    case DateIntervalUnit::HOUR:
                         $calculationClause = '/24';
                         break;
 
-                    case self::DATE_INTERVAL_UNIT_WEEK:
+                    case DateIntervalUnit::WEEK:
                         $calculationClause = '*7';
                         break;
                 }
@@ -244,12 +256,12 @@ class OraclePlatform extends AbstractPlatform
     protected function _getTransactionIsolationLevelSQL($level)
     {
         switch ($level) {
-            case \Doctrine\DBAL\Connection::TRANSACTION_READ_UNCOMMITTED:
+            case TransactionIsolationLevel::READ_UNCOMMITTED:
                 return 'READ UNCOMMITTED';
-            case \Doctrine\DBAL\Connection::TRANSACTION_READ_COMMITTED:
+            case TransactionIsolationLevel::READ_COMMITTED:
                 return 'READ COMMITTED';
-            case \Doctrine\DBAL\Connection::TRANSACTION_REPEATABLE_READ:
-            case \Doctrine\DBAL\Connection::TRANSACTION_SERIALIZABLE:
+            case TransactionIsolationLevel::REPEATABLE_READ:
+            case TransactionIsolationLevel::SERIALIZABLE:
                 return 'SERIALIZABLE';
             default:
                 return parent::_getTransactionIsolationLevelSQL($level);
@@ -386,9 +398,9 @@ class OraclePlatform extends AbstractPlatform
      */
     protected function _getCreateTableSQL($table, array $columns, array $options = [])
     {
-        $indexes = isset($options['indexes']) ? $options['indexes'] : [];
+        $indexes            = $options['indexes'] ?? [];
         $options['indexes'] = [];
-        $sql = parent::_getCreateTableSQL($table, $columns, $options);
+        $sql                = parent::_getCreateTableSQL($table, $columns, $options);
 
         foreach ($columns as $name => $column) {
             if (isset($column['sequence'])) {
@@ -483,9 +495,9 @@ class OraclePlatform extends AbstractPlatform
     }
 
     /**
-     * @param string  $name
-     * @param string  $table
-     * @param integer $start
+     * @param string $name
+     * @param string $table
+     * @param int    $start
      *
      * @return array
      */

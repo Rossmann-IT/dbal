@@ -24,6 +24,9 @@ use Doctrine\DBAL\Schema\Visitor\DropSchemaSqlCollector;
 use Doctrine\DBAL\Schema\Visitor\NamespaceVisitor;
 use Doctrine\DBAL\Schema\Visitor\Visitor;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use function array_keys;
+use function strpos;
+use function strtolower;
 
 /**
  * Object representation of a database schema.
@@ -109,7 +112,7 @@ class Schema extends AbstractAsset
     }
 
     /**
-     * @return boolean
+     * @return bool
      */
     public function hasExplicitForeignKeyIndexes()
     {
@@ -237,7 +240,7 @@ class Schema extends AbstractAsset
      *
      * @param string $namespaceName
      *
-     * @return boolean
+     * @return bool
      */
     public function hasNamespace($namespaceName)
     {
@@ -251,7 +254,7 @@ class Schema extends AbstractAsset
      *
      * @param string $tableName
      *
-     * @return boolean
+     * @return bool
      */
     public function hasTable($tableName)
     {
@@ -273,7 +276,7 @@ class Schema extends AbstractAsset
     /**
      * @param string $sequenceName
      *
-     * @return boolean
+     * @return bool
      */
     public function hasSequence($sequenceName)
     {
@@ -386,9 +389,9 @@ class Schema extends AbstractAsset
     /**
      * Creates a new sequence.
      *
-     * @param string  $sequenceName
-     * @param integer $allocationSize
-     * @param integer $initialValue
+     * @param string $sequenceName
+     * @param int    $allocationSize
+     * @param int    $initialValue
      *
      * @return \Doctrine\DBAL\Schema\Sequence
      */

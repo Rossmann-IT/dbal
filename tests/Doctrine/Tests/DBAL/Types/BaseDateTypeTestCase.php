@@ -3,9 +3,10 @@
 namespace Doctrine\Tests\DBAL\Types;
 
 use Doctrine\Tests\DBAL\Mocks\MockPlatform;
-use PHPUnit_Framework_TestCase;
+use function date_default_timezone_get;
+use function date_default_timezone_set;
 
-abstract class BaseDateTypeTestCase extends PHPUnit_Framework_TestCase
+abstract class BaseDateTypeTestCase extends \PHPUnit\Framework\TestCase
 {
     /**
      * @var MockPlatform
@@ -30,7 +31,7 @@ abstract class BaseDateTypeTestCase extends PHPUnit_Framework_TestCase
         $this->platform        = new MockPlatform();
         $this->currentTimezone = date_default_timezone_get();
 
-        $this->assertInstanceOf('Doctrine\DBAL\Types\Type', $this->type);
+        self::assertInstanceOf('Doctrine\DBAL\Types\Type', $this->type);
     }
 
     /**
@@ -43,7 +44,7 @@ abstract class BaseDateTypeTestCase extends PHPUnit_Framework_TestCase
 
     public function testDateConvertsToDatabaseValue()
     {
-        $this->assertInternalType('string', $this->type->convertToDatabaseValue(new \DateTime(), $this->platform));
+        self::assertInternalType('string', $this->type->convertToDatabaseValue(new \DateTime(), $this->platform));
     }
 
     /**
@@ -53,21 +54,21 @@ abstract class BaseDateTypeTestCase extends PHPUnit_Framework_TestCase
      */
     public function testInvalidTypeConversionToDatabaseValue($value)
     {
-        $this->setExpectedException('Doctrine\DBAL\Types\ConversionException');
+        $this->expectException('Doctrine\DBAL\Types\ConversionException');
 
         $this->type->convertToDatabaseValue($value, $this->platform);
     }
 
     public function testNullConversion()
     {
-        $this->assertNull($this->type->convertToPHPValue(null, $this->platform));
+        self::assertNull($this->type->convertToPHPValue(null, $this->platform));
     }
 
     public function testConvertDateTimeToPHPValue()
     {
         $date = new \DateTime('now');
 
-        $this->assertSame($date, $this->type->convertToPHPValue($date, $this->platform));
+        self::assertSame($date, $this->type->convertToPHPValue($date, $this->platform));
     }
 
     /**

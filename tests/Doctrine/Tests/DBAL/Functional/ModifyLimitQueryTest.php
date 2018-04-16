@@ -1,9 +1,15 @@
 <?php
 
 namespace Doctrine\Tests\DBAL\Functional;
+use const CASE_LOWER;
+use function array_change_key_case;
+use function count;
 
 class ModifyLimitQueryTest extends \Doctrine\Tests\DbalFunctionalTestCase
 {
+    /**
+     * @var bool
+     */
     private static $tableCreated = false;
 
     protected function setUp()
@@ -168,9 +174,9 @@ SQL;
          * Do not assert the order of results when results are non-deterministic
          */
         if ($deterministic) {
-            $this->assertEquals($expectedResults, $data);
+            self::assertEquals($expectedResults, $data);
         } else {
-            $this->assertCount(count($expectedResults), $data);
+            self::assertCount(count($expectedResults), $data);
         }
     }
 }

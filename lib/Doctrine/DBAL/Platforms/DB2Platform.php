@@ -26,6 +26,14 @@ use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Types\Type;
+use function array_merge;
+use function count;
+use function current;
+use function explode;
+use function implode;
+use function sprintf;
+use function strpos;
+use function strtoupper;
 
 class DB2Platform extends AbstractPlatform
 {
@@ -193,14 +201,14 @@ class DB2Platform extends AbstractPlatform
     protected function getDateArithmeticIntervalExpression($date, $operator, $interval, $unit)
     {
         switch ($unit) {
-            case self::DATE_INTERVAL_UNIT_WEEK:
+            case DateIntervalUnit::WEEK:
                 $interval *= 7;
-                $unit = self::DATE_INTERVAL_UNIT_DAY;
+                $unit      = DateIntervalUnit::DAY;
                 break;
 
-            case self::DATE_INTERVAL_UNIT_QUARTER:
+            case DateIntervalUnit::QUARTER:
                 $interval *= 3;
-                $unit = self::DATE_INTERVAL_UNIT_MONTH;
+                $unit      = DateIntervalUnit::MONTH;
                 break;
         }
 
@@ -698,8 +706,7 @@ class DB2Platform extends AbstractPlatform
 
                     $sql[] = $this->getCreateIndexSQL($addIndex, $table);
 
-                    unset($diff->removedIndexes[$remKey]);
-                    unset($diff->addedIndexes[$addKey]);
+                    unset($diff->removedIndexes[$remKey], $diff->addedIndexes[$addKey]);
 
                     break;
                 }

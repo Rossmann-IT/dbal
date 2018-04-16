@@ -5,5 +5,7 @@ dist/
 download/
 vendor/
 *.phpunit.xml
+/phpunit.xml
+/.phpcs-cache
 composer.lock
 .idea/

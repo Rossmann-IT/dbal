@@ -19,6 +19,8 @@
 
 namespace Doctrine\DBAL\Schema;
 
+use function in_array;
+
 /**
  * Represents the change of a column.
  *
@@ -65,7 +67,7 @@ class ColumnDiff
     /**
      * @param string $propertyName
      *
-     * @return boolean
+     * @return bool
      */
     public function hasChanged($propertyName)
     {

@@ -3,6 +3,7 @@
 namespace Doctrine\Tests\DBAL\Driver\IBMDB2;
 
 use Doctrine\Tests\DbalTestCase;
+use function extension_loaded;
 
 class DB2ConnectionTest extends DbalTestCase
 {
@@ -28,6 +29,6 @@ class DB2ConnectionTest extends DbalTestCase
 
     public function testDoesNotRequireQueryForServerVersion()
     {
-        $this->assertFalse($this->connectionMock->requiresQueryForServerVersion());
+        self::assertFalse($this->connectionMock->requiresQueryForServerVersion());
     }
 }

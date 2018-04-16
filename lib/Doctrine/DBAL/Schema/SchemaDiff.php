@@ -20,6 +20,7 @@
 namespace Doctrine\DBAL\Schema;
 
 use \Doctrine\DBAL\Platforms\AbstractPlatform;
+use function array_merge;
 
 /**
  * Schema Diff.
@@ -138,7 +139,7 @@ class SchemaDiff
 
     /**
      * @param \Doctrine\DBAL\Platforms\AbstractPlatform $platform
-     * @param boolean                                   $saveMode
+     * @param bool                                      $saveMode
      *
      * @return array
      */

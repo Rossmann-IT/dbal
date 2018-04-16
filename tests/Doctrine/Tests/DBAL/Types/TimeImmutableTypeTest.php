@@ -2,12 +2,14 @@
 
 namespace Doctrine\Tests\DBAL\Types;
 
+use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\ConversionException;
 use Doctrine\DBAL\Types\TimeImmutableType;
 use Doctrine\DBAL\Types\Type;
+use function get_class;
 
-class TimeImmutableTypeTest extends \PHPUnit_Framework_TestCase
+class TimeImmutableTypeTest extends \PHPUnit\Framework\TestCase
 {
     /**
      * @var \Doctrine\DBAL\Platforms\AbstractPlatform|\Prophecy\Prophecy\ObjectProphecy
@@ -27,17 +29,17 @@ class TimeImmutableTypeTest extends \PHPUnit_Framework_TestCase
 
     public function testFactoryCreatesCorrectType()
     {
-        $this->assertSame(TimeImmutableType::class, get_class($this->type));
+        self::assertSame(TimeImmutableType::class, get_class($this->type));
     }
 
     public function testReturnsName()
     {
-        $this->assertSame('time_immutable', $this->type->getName());
+        self::assertSame('time_immutable', $this->type->getName());
     }
 
     public function testReturnsBindingType()
     {
-        $this->assertSame(\PDO::PARAM_STR, $this->type->getBindingType());
+        self::assertSame(ParameterType::STRING, $this->type->getBindingType());
     }
 
     public function testConvertsDateTimeImmutableInstanceToDatabaseValue()
@@ -47,7 +49,7 @@ class TimeImmutableTypeTest extends \PHPUnit_Framework_TestCase
         $this->platform->getTimeFormatString()->willReturn('H:i:s')->shouldBeCalled();
         $date->format('H:i:s')->willReturn('15:58:59')->shouldBeCalled();
 
-        $this->assertSame(
+        self::assertSame(
             '15:58:59',
             $this->type->convertToDatabaseValue($date->reveal(), $this->platform->reveal())
         );
@@ -55,7 +57,7 @@ class TimeImmutableTypeTest extends \PHPUnit_Framework_TestCase
 
     public function testConvertsNullToDatabaseValue()
     {
-        $this->assertNull($this->type->convertToDatabaseValue(null, $this->platform->reveal()));
+        self::assertNull($this->type->convertToDatabaseValue(null, $this->platform->reveal()));
     }
 
     public function testDoesNotSupportMutableDateTimeToDatabaseValueConversion()
@@ -69,12 +71,12 @@ class TimeImmutableTypeTest extends \PHPUnit_Framework_TestCase
     {
         $date = new \DateTimeImmutable();
 
-        $this->assertSame($date, $this->type->convertToPHPValue($date, $this->platform->reveal()));
+        self::assertSame($date, $this->type->convertToPHPValue($date, $this->platform->reveal()));
     }
 
     public function testConvertsNullToPHPValue()
     {
-        $this->assertNull($this->type->convertToPHPValue(null, $this->platform->reveal()));
+        self::assertNull($this->type->convertToPHPValue(null, $this->platform->reveal()));
     }
 
     public function testConvertsTimeStringToPHPValue()
@@ -83,8 +85,8 @@ class TimeImmutableTypeTest extends \PHPUnit_Framework_TestCase
 
         $date = $this->type->convertToPHPValue('15:58:59', $this->platform->reveal());
 
-        $this->assertInstanceOf(\DateTimeImmutable::class, $date);
-        $this->assertSame('15:58:59', $date->format('H:i:s'));
+        self::assertInstanceOf(\DateTimeImmutable::class, $date);
+        self::assertSame('15:58:59', $date->format('H:i:s'));
     }
 
     public function testResetDateFractionsWhenConvertingToPHPValue()
@@ -93,7 +95,7 @@ class TimeImmutableTypeTest extends \PHPUnit_Framework_TestCase
 
         $date = $this->type->convertToPHPValue('15:58:59', $this->platform->reveal());
 
-        $this->assertSame('1970-01-01 15:58:59', $date->format('Y-m-d H:i:s'));
+        self::assertSame('1970-01-01 15:58:59', $date->format('Y-m-d H:i:s'));
     }
 
     public function testThrowsExceptionDuringConversionToPHPValueWithInvalidTimeString()
@@ -105,6 +107,6 @@ class TimeImmutableTypeTest extends \PHPUnit_Framework_TestCase
 
     public function testRequiresSQLCommentHint()
     {
-        $this->assertTrue($this->type->requiresSQLCommentHint($this->platform->reveal()));
+        self::assertTrue($this->type->requiresSQLCommentHint($this->platform->reveal()));
     }
 }

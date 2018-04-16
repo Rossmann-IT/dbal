@@ -2,6 +2,7 @@
 namespace Doctrine\Tests\DBAL\Sharding\SQLAzure;
 
 use Doctrine\DBAL\Sharding\SQLAzure\SQLAzureFederationsSynchronizer;
+use function count;
 
 class FunctionalTest extends AbstractTestCase
 {
@@ -31,14 +32,13 @@ class FunctionalTest extends AbstractTestCase
 
         $query = "SELECT * FROM Products";
         $data = $this->conn->fetchAll($query);
-        $this->assertTrue(count($data) > 0);
+        self::assertGreaterThan(0, count($data));
 
         $query = "SELECT * FROM Customers";
         $data = $this->conn->fetchAll($query);
-        $this->assertTrue(count($data) > 0);
+        self::assertGreaterThan(0, count($data));
 
         $data = $this->sm->queryAll("SELECT * FROM Customers");
-        $this->assertTrue(count($data) > 0);
+        self::assertGreaterThan(0, count($data));
     }
 }
-
