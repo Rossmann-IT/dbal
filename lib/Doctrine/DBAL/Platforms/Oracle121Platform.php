@@ -25,12 +25,11 @@ use Doctrine\DBAL\Schema\Table;
 
 /**
  * uses new Oracle 12.1 features
- * - enables the use of identity columns instead of sequence/trigger
+ * - supports the use of identity columns ("GENERATED ... AS IDENTITY") instead of sequences/triggers
  *
- * Class Oracle121Platform
- *
- *
- * @package Doctrine\DBAL\Platforms
+ * @since 2.6
+ * @author Simone Burschewski <simone.burschewski@rossmann.de>
+ * @author Robert Grellmann <robert.grellmann@rossmann.de>
  */
 class Oracle121Platform extends OraclePlatform {
 

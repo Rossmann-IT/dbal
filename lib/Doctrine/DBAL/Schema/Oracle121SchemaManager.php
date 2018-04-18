@@ -24,7 +24,9 @@ use Doctrine\DBAL\Types\Type;
 
 /**
  * Schema Manager for Oracle Database 12c Release 1
- * - supports the identity clause ("GENERATED ... AS IDENTITY")
+ * - supports the use of identity columns ("GENERATED ... AS IDENTITY") instead of sequences/triggers
+ *
+ * @since  2.6
  * @author Simone Burschewski <simone.burschewski@rossmann.de>
  * @author Robert Grellmann <robert.grellmann@rossmann.de>
  */
@@ -59,8 +61,6 @@ class Oracle121SchemaManager extends OracleSchemaManager
     protected function _getPortableTableColumnDefinition($tableColumn)
     {
         $tableColumn = \array_change_key_case($tableColumn, CASE_LOWER);
-
-        $autoincrement = false;
 
         $dbType = strtolower($tableColumn['data_type']);
         if (strpos($dbType, "timestamp(") === 0) {
@@ -99,6 +99,7 @@ class Oracle121SchemaManager extends OracleSchemaManager
             }
         }
 
+        $autoincrement = false;
         if (!empty($tableColumn['data_default']) && $tableColumn['identity_column'] === 'YES') {
             $tableColumn['data_default'] = null;
             $autoincrement = true;
@@ -171,7 +172,6 @@ class Oracle121SchemaManager extends OracleSchemaManager
             'comment'    => isset($tableColumn['comments']) && '' !== $tableColumn['comments']
                 ? $tableColumn['comments']
                 : null,
-            'platformDetails' => [],
         ];
 
         return new Column($this->getQuotedIdentifierName($tableColumn['column_name']), Type::getType($type), $options);
@@ -343,6 +343,7 @@ class Oracle121SchemaManager extends OracleSchemaManager
      * Lists the tables for this connection.
      *
      * @return array \Doctrine\DBAL\Schema\Table[]
+     * @throws \Doctrine\DBAL\DBALException
      */
     public function listTables() {
         $database = $this->_conn->getDatabase();
@@ -364,21 +365,21 @@ class Oracle121SchemaManager extends OracleSchemaManager
         foreach ($tableNames as $tableName) {
             $tableName = $this->_conn->quoteIdentifier($tableName);
 
-            // Get the column list from the dictionnary that contains all columns for the current database
+            // Get the column list from the dictionary that contains all columns for the current database
             if (array_key_exists($tableName, $tablesColumns)) {
                 $columns = $tablesColumns[$tableName];
             } else {
                 $columns = [];
             }
 
-            // Get the foreign keys list from the dictionnary that contains all foreign keys for the current database
+            // Get the foreign keys list from the dictionary that contains all foreign keys for the current database
             if (array_key_exists($tableName, $tablesForeignKeys)) {
                 $foreignKeys = $tablesForeignKeys[$tableName];
             } else {
                 $foreignKeys = [];
             }
 
-            // Get the index list from the dictionnary that contains all indexes for the current database
+            // Get the index list from the dictionary that contains all indexes for the current database
             if (array_key_exists($tableName, $tablesIndexes)) {
                 $indexes = $tablesIndexes[$tableName];
             } else {
