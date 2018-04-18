@@ -23,6 +23,7 @@ use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\Oracle121Platform;
+use Doctrine\DBAL\Platforms\Oracle122Platform;
 use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Schema\OracleSchemaManager;
 use Doctrine\DBAL\VersionAwarePlatformDriver;
@@ -58,6 +59,8 @@ abstract class AbstractOracleDriver implements Driver, ExceptionConverterDriver,
         $version      = $majorVersion . '.' . $minorVersion . '.' . $patchVersion;
 
         switch(true) {
+            case version_compare($version, '12.2', '>='):
+                return new Oracle122Platform();
             case version_compare($version, '12.1', '>='):
                 return new Oracle121Platform();
             default:
