@@ -19,6 +19,7 @@
 
 namespace Doctrine\DBAL\Schema;
 
+use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Platforms\Oracle121Platform;
 use Doctrine\DBAL\Types\Type;
 
@@ -37,21 +38,6 @@ class Oracle121SchemaManager extends OracleSchemaManager
      * @var Oracle121Platform
      */
     protected $_platform;
-
-    /**
-     * for special indexes
-     * can be case or function
-     * e.g.
-     * CREATE UNIQUE INDEX NAME ON TABLE
-     * (CASE WHEN COLUMN > 0 THEN COLUMN ELSE NULL END,
-     * CASE WHEN COLUMN2 > 0 THEN NULL ELSE COLUMN2 END);
-     *
-     * CREATE INDEX NAME ON TABLE (NLSSORT(COLUMN, 'NLS_SORT=XGERMAN_CI'), COLUMN2);
-     *
-     * can be function|case
-     * @var string
-     */
-    protected $columnExpressionType;
 
     /**
      * identity columns are considered as default = null, autoincrement = true
@@ -87,8 +73,8 @@ class Oracle121SchemaManager extends OracleSchemaManager
         if (null !== $tableColumn['data_default']) {
             $tableColumn['data_default'] = trim($tableColumn['data_default']);
             /**
-             * default value for a string looks like this: 'open'
-             * default value for an expression looks like this: SYSTIMESTAMP AT TIME ZONE 'UTC'
+             * a default value for a string looks like this: 'open'
+             * a default value for an expression looks like this: SYSTIMESTAMP AT TIME ZONE 'UTC'
              * we only want to get rid of the outer single quotes in strings, not in expressions
              */
             $hasLeftQuote = substr($tableColumn['data_default'], 0, 1) === "'";
@@ -178,161 +164,94 @@ class Oracle121SchemaManager extends OracleSchemaManager
     }
 
     /**
-     * custom implementation for indexes with case / nlssort clauses
+     * custom implementation for function based indexes (tested with NLSSORT, SYS_EXTRACT_UTC, CASE, UPPER, ...)
+     * this method assumes that the platform's getListTablesIndexesSQL() contains an ORDER BY clause to sort
+     * the index rows by index name and column position
      *
      * {@inheritdoc}
      *
      * @license New BSD License
      * @link http://ezcomponents.org/docs/api/trunk/DatabaseSchema/ezcDbSchemaPgsqlReader.html
      */
-    protected function _getPortableTableIndexesList($tableIndexes, $tableName=null)
+    protected function _getPortableTableIndexesList($tableIndexRows, $tableName=null)
     {
-        $indexBuffer = [];
-        $indexPosition = 0;
-        $deleteBuffer = [];
-        $caseBuffer = [];
-        foreach ($tableIndexes as $tableIndex) {
-            $buffer['where'] = null;
-            $tableIndex = \array_change_key_case($tableIndex, CASE_LOWER);
+        $firstIndexRowKey = null;
+        // for multi-column indexes the $tableIndexRows array has one element for each index column
+        foreach ($tableIndexRows as $key => &$tableIndexRow) {
+            $buffer = [];
+            $tableIndexRow = \array_change_key_case($tableIndexRow, CASE_LOWER);
 
-            $keyName = strtolower($tableIndex['name']);
+            $keyName = strtolower($tableIndexRow['name']);
+            $buffer['key_name'] = $keyName;
 
-            /*
-             * if index type != normal, index needs to be treated differently
-             */
-            $indexType = strtolower($tableIndex['type']);
-
-            if (strtolower($tableIndex['is_primary']) == "p") {
-                $keyName = 'primary';
+            if (strtolower($tableIndexRow['is_primary']) == "p") {
                 $buffer['primary'] = true;
                 $buffer['non_unique'] = false;
             } else {
                 $buffer['primary'] = false;
-                $buffer['non_unique'] = ($tableIndex['is_unique'] == 0) ? true : false;
+                $buffer['non_unique'] = ($tableIndexRow['is_unique'] == 0) ? true : false;
             }
 
-            $buffer['key_name'] = $keyName;
-            if ('primary' !== $keyName && 'normal' !== $indexType
-                && !empty($tableIndex['column_expression'])
+            if ($tableIndexRow['type'] == 'FUNCTION-BASED NORMAL' && !empty($tableIndexRow['column_expression'])
             ) {
-                $columnExpression = $this->getColumnExpression($tableIndex['column_expression']);
-                $columnName = key($columnExpression);
-                if (!empty($columnExpression) && sizeOf($columnExpression) > 0) {
-                    switch ($this->columnExpressionType) {
-                        case 'function':
-                            $buffer['where'] = $columnExpression;
-                            break;
-                        case 'case':
-                            // case clauses must be mapped to one single column, so we store them in an array
-                            $caseBuffer[$keyName]['case'][] = $columnExpression[$columnName]['case'];
-                            if (!isset($caseBuffer[$keyName]['field'])) {
-                                $caseBuffer[$keyName]['field'] = key($columnExpression);
-                                $caseBuffer[$keyName]['position'] = $indexPosition;
-                            } else {
-                                // columns apart from the first match must be deleted
-                                $deleteBuffer[] = $indexPosition;
-                            }
-                            break;
-                    }
-                } else {
-                    unset($buffer['where']);
+                // remove multiple an trailing whitespaces
+                $tableIndexRow['column_expression'] = preg_replace('!\s+!', ' ', $tableIndexRow['column_expression']);
+                $tableIndexRow['column_expression'] = trim($tableIndexRow['column_expression']);
+                /*
+                 * - the doctrine table definitions require that each column expression is mapped to one single column
+                 * - Oracle stores column identifiers in the column expression quoted with double quotations marks
+                 * - we take the first column that appears in the expression, if another expression also had the same column
+                 *   mentioned first, we take the second and so on
+                 * - that means, it is not possible to define more expressions in one index with the same columns than
+                 *   columns appear in these expressions and you might need to adjust the order
+                 *   (this is a limitation of doctrine, not Oracle)
+                 */
+                preg_match("/\"(.*?)\"/", $tableIndexRow['column_expression'],$columnNamesInExpression);
+                if (empty($columnNamesInExpression[1])) {
+                    throw new DBALException('No column name in double quotation marks found in column expression: ' . $tableIndexRow['column_expression']);
                 }
-                $buffer['column_name'] = $columnName;
-                $columnName = null;
+                $expressionMapped = false;
+                for ($i = 1; $i <= count($columnNamesInExpression); $i++) {
+                    $columnName = $this->getQuotedIdentifierName($columnNamesInExpression[$i]);
+                    if (!isset($buffer['where'][$columnName])) {
+                        $buffer['column_name'] = $columnName;
+                        $buffer['where'][$columnName] = $tableIndexRow['column_expression'];
+                        $expressionMapped = true;
+                        break;
+                    }
+                }
+                if (!$expressionMapped) {
+                    throw new DBALException('Could not map the column expression ' . $tableIndexRow['column_expression']
+                        . 'to a column, because other expressions in this index have been mapped to all available column names');
+                }
+
             } else {
-                $buffer['column_name'] = $this->getQuotedIdentifierName($tableIndex['column_name']);
+                $buffer['column_name'] = $this->getQuotedIdentifierName($tableIndexRow['column_name']);
             }
 
-            $indexBuffer[] = $buffer;
-            $indexPosition++;
-        }
+            $tableIndexRow = $buffer;
+            // $tableIndexRow is a reference, unset $buffer
+            unset($buffer);
 
-        // put case clause in options['where'] of the index
-        if (!empty($caseBuffer)) {
-            foreach ($caseBuffer as $buffer) {
-                $field = $buffer['field'];
-                $case = $buffer['case'];
-                $position = $buffer['position'];
-                $indexBuffer[$position]['where'][$field]['case'] = $case;
+            // the AbstractSchemaManager only recognizes the "where" option of the first index row
+            // so we move/merge the "where" option if we have one on another index row but the first
+            if (is_null($firstIndexRowKey) OR $tableIndexRows[$firstIndexRowKey]['key_name'] != $tableIndexRow['key_name']) {
+                // this is the first iteration or the first row of the next index
+                $firstIndexRowKey = $key;
+            } elseif (!empty($tableIndexRow['where'])) {
+                // this is not the first row of an index and it has a column expression (stored in the "where" option)
+                if (!isset($tableIndexRows[$firstIndexRowKey]['where'])) {
+                    $tableIndexRows[$firstIndexRowKey]['where'] = [];
+                }
+                $tableIndexRows[$firstIndexRowKey]['where'] += $tableIndexRow['where'];
+                unset($tableIndexRow['where']);
             }
-        }
-        // delete unused buffers with case clauses
-        if (!empty($deleteBuffer)) {
-            foreach ($deleteBuffer as $position) {
-                unset($indexBuffer[$position]);
-            }
-        }
 
-        return AbstractSchemaManager::_getPortableTableIndexesList($indexBuffer, $tableName);
-    }
+        }
+        // unset reference
+        unset($tableIndexRow);
 
-    /**
-     * @param $columnExpression
-     * @return array
-     * @throws \Exception
-     */
-    protected function getColumnExpression($columnExpression) {
-        $this->columnExpressionType = null;
-        $columnExpression = str_replace(['"', '\''], '', $columnExpression);
-        $columnExpression = preg_replace('!\s+!', ' ', $columnExpression);
-        $columnExpression = trim($columnExpression);
-        // matches e.g. NLSSORT(FIRST_NAME,nls_sort=XGERMAN_CI)
-        $found = preg_match('/^([a-zA-Z_]*)\((.*),(.*)\)$/Ui', str_replace(' ', '', $columnExpression), $matches);
-        // matches e.g. SYS_EXTRACT_UTC(VALID_TO)
-        if (1 !== $found) {
-            $found = preg_match('/^([a-zA-Z_]*)\((.*)\)$/Ui', str_replace(' ', '', $columnExpression), $matches);
-        }
-        // a function was found in the where clause
-        if (1 === $found) {
-            $function = $matches[1];
-            $field = $matches[2];
-            if (isset($matches[3])) {
-                $params = explode('=', $matches[3]);
-            }
-            $expression[$field] = [
-                'function' => $function
-            ];
-            if (!empty($params)) {
-                $expression[$field]['params'] = [$params[0] => $params[1]];
-            }
-            $this->columnExpressionType = 'function';
-            return $expression;
-        }
-        $columnExpression = str_replace([')', '('], '', $columnExpression);
-
-        // matches e.g. CASE WHEN CONTACT_ID>0 THEN CONTACT_ID ELSE NULL END
-        $found = preg_match('/^case when([A-Za-z >=<0-9_]*)then([A-Za-z >=<0-9_]*)else([A-Za-z >=<0-9_]*)end$/Ui', $columnExpression, $matches);
-        if (1 !== $found) {
-            // matches e.g. CASE WHEN DELETED = 0 AND preferred = 1 THEN contact_id END
-            $found = preg_match('/^case when([A-Za-z >=<0-9_]*)then([A-Za-z >=<0-9_]*)end$/Ui', $columnExpression, $matches);
-        }
-        if (1 === $found) {
-            $matches = array_map('trim', $matches);
-            $field = $this->extractColumnName($matches[1]);
-            $expression[$field]['case']['when'] = $matches[1];
-            $expression[$field]['case']['then'] = $matches[2];
-            if (isset($matches[3])) {
-                $expression[$field]['case']['else'] = $matches[3];
-            }
-            $this->columnExpressionType = 'case';
-            return $expression;
-        }
-        throw new \Exception('could not handle column expression' . var_export($columnExpression, true));
-    }
-
-    /**
-     * gets the first column name from the when statement
-     *
-     * @param $sql
-     * @return string
-     * @throws \Exception
-     */
-    protected function extractColumnName($sql) {
-        $found = preg_match('/^([A-Za-z_]*)[>=<].*$/Ui', $sql, $matches);
-        if (1 !== $found) {
-            throw new \Exception('no column name found in sql snippet' . $sql);
-        }
-        return trim($matches[1]);
+        return AbstractSchemaManager::_getPortableTableIndexesList($tableIndexRows, $tableName);
     }
 
 
@@ -453,6 +372,7 @@ class Oracle121SchemaManager extends OracleSchemaManager
     /**
      * @param null $database
      * @return array
+     * @throws DBALException
      */
     protected function listTablesIndexes($database = null) {
         $sql = $this->_platform->getListTablesIndexesSQL($database);

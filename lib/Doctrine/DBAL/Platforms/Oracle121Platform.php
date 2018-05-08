@@ -261,70 +261,28 @@ class Oracle121Platform extends OraclePlatform {
      *
      * @return string
      */
-    public function getIndexFieldDeclarationListWithOptionsSQL(array $fields, array $options)
+    protected function getIndexFieldDeclarationListWithOptionsSQL(array $fields, array $options)
     {
-        $ret = [];
+        $fieldDeclarationList = [];
 
         foreach ($fields as $field => $definition) {
             if (is_array($definition)) {
-                $ret[] = $field;
+                $fieldDeclarationList[] = $field;
             } else {
-                $ret[] = $definition;
+                $fieldDeclarationList[] = $definition;
             }
         }
 
-        foreach ($ret as &$field) {
+        foreach ($fieldDeclarationList as &$field) {
             $where = $options['where'] ?? [];
-            // apply function, e.g. nlssort
-            if (!empty($where)) {
-                $function = $where[$field]['function'] ?? null;
-                $params = $where[$field]['params'] ?? null;
-                if (!empty($function)) {
-                    $field = $function . '(' . $field . '';
-                    if (!empty($params)) {
-                        foreach ($params as $key => $value) {
-                            $field .= ', \'' . $key . ' = \'\'' . $value . '\'\'\'';
-                        }
-                    }
-                    $field .= ')';
-                } else {
-                    // apply case, e.g. CASE WHEN DELETED = 0 AND preferred = 1 THEN contact_id END
-                    $case = $where[$field]['case'] ?? null;
-                    if (!empty($case)) {
-                        if (array_key_exists('when', $case) == 1) {
-                            $field = $this->generateCaseCondition($case);
-                        } else {
-                            $caseSQL = null;
-                            foreach ($case as $condition) {
-                                $caseSQL[] = $this->generateCaseCondition($condition);
-                            }
-                            if (!empty($caseSQL)) {
-                                $field = implode(', ', $caseSQL);
-                            }
-                        }
-                    }
-                }
+            if (!empty($where[$field])) {
+                // apply column expression
+                $field = $where[$field];
             }
         }
 
-        return implode(', ', $ret);
+        return implode(', ', $fieldDeclarationList);
     }
-
-    /**
-     * support for indexes with case clause
-     *
-     * @param array $case
-     * @return string
-     */
-    protected function generateCaseCondition(array $case) {
-        $condition = 'CASE WHEN ' . $case['when'] . ' THEN ' . $case['then'];
-        if (isset($case['else']) && !empty($case['else'])) {
-            $condition .= ' ELSE ' . $case['else'];
-        }
-        $condition .= ' END';
-        return $condition;
-    }
-
 
     // The following methods are used to retrieve database metadata in one single call instead of one call per table
 
@@ -386,7 +344,6 @@ class Oracle121Platform extends OraclePlatform {
             ORDER BY index_columns.index_name, index_columns.column_position";
         return $sql;
     }
-
 
 
     /**
