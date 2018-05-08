@@ -22,7 +22,9 @@ namespace Doctrine\DBAL\Driver\OCI8;
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Driver\AbstractOracleDriver;
 use Doctrine\DBAL\Platforms\Oracle121Platform;
+use Doctrine\DBAL\Platforms\Oracle122Platform;
 use Doctrine\DBAL\Schema\Oracle121SchemaManager;
+use Doctrine\DBAL\Schema\Oracle122SchemaManager;
 use Doctrine\DBAL\Schema\OracleSchemaManager;
 
 use const OCI_DEFAULT;
@@ -83,6 +85,9 @@ class Driver extends AbstractOracleDriver
     public function getSchemaManager(\Doctrine\DBAL\Connection $conn)
     {
         $platform = $conn->getDatabasePlatform();
+        if ($platform instanceof Oracle122Platform) {
+            return new Oracle122SchemaManager($conn);
+        }
         if ($platform instanceof Oracle121Platform) {
             return new Oracle121SchemaManager($conn);
         }
