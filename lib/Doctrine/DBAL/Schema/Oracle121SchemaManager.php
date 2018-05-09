@@ -192,9 +192,23 @@ class Oracle121SchemaManager extends OracleSchemaManager
                 $buffer['non_unique'] = ($tableIndexRow['is_unique'] == 0) ? true : false;
             }
 
-            if ($tableIndexRow['type'] == 'FUNCTION-BASED NORMAL' && !empty($tableIndexRow['column_expression'])
+            // the AbstractSchemaManager only recognizes the "where" option of the first index row,
+            // so we take note which key holds the first row of the current index
+            if (is_null($firstIndexRowKey) OR $tableIndexRows[$firstIndexRowKey]['key_name'] != $buffer['key_name']) {
+                // this is the first iteration or the first row of the next index
+                $firstIndexRowKey = $key;
+            }
+
+            if ($tableIndexRow['type'] != 'FUNCTION-BASED NORMAL' OR empty($tableIndexRow['column_expression'])
             ) {
-                // remove multiple an trailing whitespaces
+                // normal index column
+                $buffer['column_name'] = $this->getQuotedIdentifierName($tableIndexRow['column_name']);
+                $tableIndexRow = $buffer;
+            }
+            else {
+                // this index column contains an expression
+
+                // remove multiple and trailing whitespaces
                 $tableIndexRow['column_expression'] = preg_replace('!\s+!', ' ', $tableIndexRow['column_expression']);
                 $tableIndexRow['column_expression'] = trim($tableIndexRow['column_expression']);
                 /*
@@ -206,47 +220,51 @@ class Oracle121SchemaManager extends OracleSchemaManager
                  *   columns appear in these expressions and you might need to adjust the order
                  *   (this is a limitation of doctrine, not Oracle)
                  */
-                preg_match("/\"(.*?)\"/", $tableIndexRow['column_expression'],$columnNamesInExpression);
+                preg_match_all(
+                    "/\"(.*?)\"/",
+                    $tableIndexRow['column_expression'],
+                    $columnNamesInExpression,
+                    PREG_PATTERN_ORDER
+                );
                 if (empty($columnNamesInExpression[1])) {
-                    throw new DBALException('No column name in double quotation marks found in column expression: ' . $tableIndexRow['column_expression']);
+                    throw new DBALException('No column name in double quotation marks found in column expression: '
+                        . $tableIndexRow['column_expression']
+                    );
                 }
-                $expressionMapped = false;
-                for ($i = 1; $i <= count($columnNamesInExpression); $i++) {
-                    $columnName = $this->getQuotedIdentifierName($columnNamesInExpression[$i]);
-                    if (!isset($buffer['where'][$columnName])) {
+                if ($key == $firstIndexRowKey) {
+                    $buffer['column_name'] = $columnNamesInExpression[1][0];
+                    $buffer['where'] = [$columnNamesInExpression[1][0] => $tableIndexRow['column_expression']];
+                } else {
+                    // this is not the first row of an index and it has a column expression (stored in the "where" option)
+                    $expressionMapped = false;
+                    foreach ($columnNamesInExpression[1] as $columnName) {
+                        $columnName = $this->getQuotedIdentifierName($columnName);
+                        for ($i = $key - 1; $i >= $firstIndexRowKey; $i--) {
+                            if ($tableIndexRows[$i]['column_name'] == $columnName) {
+                                // column name already in use
+                                continue 2;
+                            }
+                        }
                         $buffer['column_name'] = $columnName;
-                        $buffer['where'][$columnName] = $tableIndexRow['column_expression'];
+                        // make sure the where option of the first index row is set
+                        if (!isset($tableIndexRows[$firstIndexRowKey]['where'])) {
+                            $tableIndexRows[$firstIndexRowKey]['where'] = [];
+                        }
+                        // add the expression to the first index row's where option
+                        $tableIndexRows[$firstIndexRowKey]['where'] += [$columnName => $tableIndexRow['column_expression']];
                         $expressionMapped = true;
                         break;
                     }
+                    if (!$expressionMapped) {
+                        throw new DBALException('Could not map the column expression ' . $tableIndexRow['column_expression']
+                            . 'to a column, because other expressions in this index have been mapped to all available column names');
+                    }
                 }
-                if (!$expressionMapped) {
-                    throw new DBALException('Could not map the column expression ' . $tableIndexRow['column_expression']
-                        . 'to a column, because other expressions in this index have been mapped to all available column names');
-                }
-
-            } else {
-                $buffer['column_name'] = $this->getQuotedIdentifierName($tableIndexRow['column_name']);
+                $tableIndexRow = $buffer;
             }
 
-            $tableIndexRow = $buffer;
             // $tableIndexRow is a reference, unset $buffer
             unset($buffer);
-
-            // the AbstractSchemaManager only recognizes the "where" option of the first index row
-            // so we move/merge the "where" option if we have one on another index row but the first
-            if (is_null($firstIndexRowKey) OR $tableIndexRows[$firstIndexRowKey]['key_name'] != $tableIndexRow['key_name']) {
-                // this is the first iteration or the first row of the next index
-                $firstIndexRowKey = $key;
-            } elseif (!empty($tableIndexRow['where'])) {
-                // this is not the first row of an index and it has a column expression (stored in the "where" option)
-                if (!isset($tableIndexRows[$firstIndexRowKey]['where'])) {
-                    $tableIndexRows[$firstIndexRowKey]['where'] = [];
-                }
-                $tableIndexRows[$firstIndexRowKey]['where'] += $tableIndexRow['where'];
-                unset($tableIndexRow['where']);
-            }
-
         }
         // unset reference
         unset($tableIndexRow);

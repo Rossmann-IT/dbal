@@ -162,7 +162,7 @@ class Oracle121Platform extends OraclePlatform {
                     index_columns.column_name AS column_name,
                     index_columns.column_position AS column_pos,
                     constraints.constraint_type AS is_primary,
-                    CASE WHEN COLUMN_NAME LIKE 'SYS_%'
+                    CASE WHEN column_name LIKE 'SYS_%'
                         THEN column_expression
                         ELSE NULL END AS column_expression
                 FROM user_ind_columns index_columns
