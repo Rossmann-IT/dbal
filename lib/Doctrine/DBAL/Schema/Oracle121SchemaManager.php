@@ -256,8 +256,8 @@ class Oracle121SchemaManager extends OracleSchemaManager
                         break;
                     }
                     if (!$expressionMapped) {
-                        throw new DBALException('Could not map the column expression ' . $tableIndexRow['column_expression']
-                            . 'to a column, because other expressions in this index have been mapped to all available column names');
+                        throw new DBALException("Could not map the column expression '$tableIndexRow[column_expression]'"
+                            . " of the index $tableIndexRow[name] to a column, because other expressions in this index have been mapped to all available column names");
                     }
                 }
                 $tableIndexRow = $buffer;
