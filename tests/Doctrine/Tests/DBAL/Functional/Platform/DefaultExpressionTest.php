@@ -9,7 +9,7 @@ use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\MySqlPlatform;
 use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Schema\Table;
-use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\Tests\DbalFunctionalTestCase;
 use function sprintf;
 
@@ -23,7 +23,7 @@ class DefaultExpressionTest extends DbalFunctionalTestCase
             self::markTestSkipped('Not supported on MySQL');
         }
 
-        $this->assertDefaultExpression(Type::DATE, static function (AbstractPlatform $platform) : string {
+        $this->assertDefaultExpression(Types::DATE_MUTABLE, static function (AbstractPlatform $platform) : string {
             return $platform->getCurrentDateSQL();
         });
     }
@@ -40,14 +40,14 @@ class DefaultExpressionTest extends DbalFunctionalTestCase
             self::markTestSkipped('Not supported on Oracle');
         }
 
-        $this->assertDefaultExpression(Type::TIME, static function (AbstractPlatform $platform) : string {
+        $this->assertDefaultExpression(Types::TIME_MUTABLE, static function (AbstractPlatform $platform) : string {
             return $platform->getCurrentTimeSQL();
         });
     }
 
     public function testCurrentTimestamp() : void
     {
-        $this->assertDefaultExpression(Type::DATETIME, static function (AbstractPlatform $platform) : string {
+        $this->assertDefaultExpression(Types::DATETIME_MUTABLE, static function (AbstractPlatform $platform) : string {
             return $platform->getCurrentTimestampSQL();
         });
     }
