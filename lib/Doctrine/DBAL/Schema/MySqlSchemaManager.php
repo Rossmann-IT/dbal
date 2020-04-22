@@ -18,7 +18,6 @@ use function stripslashes;
 use function strpos;
 use function strtok;
 use function strtolower;
-use function trim;
 
 /**
  * Schema manager for the MySql RDBMS.
@@ -69,7 +68,7 @@ class MySqlSchemaManager extends AbstractSchemaManager
             } elseif (strpos($v['index_type'], 'SPATIAL') !== false) {
                 $v['flags'] = ['SPATIAL'];
             }
-            $v['length'] = $v['sub_part'] ?? null;
+            $v['length'] = isset($v['sub_part']) ? (int) $v['sub_part'] : null;
 
             $tableIndexes[$k] = $v;
         }
@@ -297,33 +296,43 @@ class MySqlSchemaManager extends AbstractSchemaManager
 
         $tableOptions = $this->_conn->fetchAssoc($sql);
 
-        $table->addOption('engine', $tableOptions['ENGINE']);
-        if ($tableOptions['TABLE_COLLATION'] !== null) {
-            $table->addOption('collation', $tableOptions['TABLE_COLLATION']);
-        }
-        if ($tableOptions['AUTO_INCREMENT'] !== null) {
-            $table->addOption('autoincrement', $tableOptions['AUTO_INCREMENT']);
-        }
-        $table->addOption('comment', $tableOptions['TABLE_COMMENT']);
-
-        if ($tableOptions['CREATE_OPTIONS'] === null) {
+        if ($tableOptions === false) {
             return $table;
         }
 
-        $createOptionsString = trim($tableOptions['CREATE_OPTIONS']);
+        $table->addOption('engine', $tableOptions['ENGINE']);
 
-        $createOptions = [];
-
-        if ($createOptionsString !== '') {
-            foreach (explode(' ', $createOptionsString) as $option) {
-                [$createOption, $value] = explode('=', $option);
-
-                $createOptions[$createOption] = $value;
-            }
+        if ($tableOptions['TABLE_COLLATION'] !== null) {
+            $table->addOption('collation', $tableOptions['TABLE_COLLATION']);
         }
 
-        $table->addOption('create_options', $createOptions);
+        if ($tableOptions['AUTO_INCREMENT'] !== null) {
+            $table->addOption('autoincrement', $tableOptions['AUTO_INCREMENT']);
+        }
+
+        $table->addOption('comment', $tableOptions['TABLE_COMMENT']);
+        $table->addOption('create_options', $this->parseCreateOptions($tableOptions['CREATE_OPTIONS']));
 
         return $table;
+    }
+
+    /**
+     * @return string[]|true[]
+     */
+    private function parseCreateOptions(?string $string) : array
+    {
+        $options = [];
+
+        if ($string === null || $string === '') {
+            return $options;
+        }
+
+        foreach (explode(' ', $string) as $pair) {
+            $parts = explode('=', $pair, 2);
+
+            $options[$parts[0]] = $parts[1] ?? true;
+        }
+
+        return $options;
     }
 }

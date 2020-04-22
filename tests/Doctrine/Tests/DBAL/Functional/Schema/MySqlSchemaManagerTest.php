@@ -107,6 +107,19 @@ class MySqlSchemaManagerTest extends SchemaManagerFunctionalTestCase
         self::assertTrue($indexes['s_index']->hasFlag('spatial'));
     }
 
+    public function testIndexWithLength() : void
+    {
+        $table = new Table('index_length');
+        $table->addColumn('text', 'string', ['length' => 255]);
+        $table->addIndex(['text'], 'text_index', [], ['lengths' => [128]]);
+
+        $this->schemaManager->dropAndCreateTable($table);
+
+        $indexes = $this->schemaManager->listTableIndexes('index_length');
+        self::assertArrayHasKey('text_index', $indexes);
+        self::assertSame([128], $indexes['text_index']->getOption('lengths'));
+    }
+
     /**
      * @group DBAL-400
      */
@@ -502,6 +515,7 @@ ENGINE InnoDB
 ROW_FORMAT COMPRESSED
 COMMENT 'This is a test'
 AUTO_INCREMENT=42
+PARTITION BY HASH (col1)
 SQL;
 
         $this->connection->query($sql);
@@ -511,7 +525,10 @@ SQL;
         self::assertEquals('utf8_general_ci', $onlineTable->getOption('collation'));
         self::assertEquals(42, $onlineTable->getOption('autoincrement'));
         self::assertEquals('This is a test', $onlineTable->getOption('comment'));
-        self::assertEquals(['row_format' => 'COMPRESSED'], $onlineTable->getOption('create_options'));
+        self::assertEquals([
+            'row_format' => 'COMPRESSED',
+            'partitioned' => true,
+        ], $onlineTable->getOption('create_options'));
     }
 
     public function testEnsureTableWithoutOptionsAreReflectedInMetadata() : void
@@ -526,5 +543,12 @@ SQL;
         self::assertFalse($onlineTable->hasOption('autoincrement'));
         self::assertEquals('', $onlineTable->getOption('comment'));
         self::assertEquals([], $onlineTable->getOption('create_options'));
+    }
+
+    public function testParseNullCreateOptions() : void
+    {
+        $table = $this->schemaManager->listTableDetails('sys.processlist');
+
+        self::assertEquals([], $table->getOption('create_options'));
     }
 }
