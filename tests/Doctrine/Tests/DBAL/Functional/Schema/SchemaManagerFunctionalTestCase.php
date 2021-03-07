@@ -6,6 +6,7 @@ use Doctrine\Common\EventManager;
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Driver\Connection;
 use Doctrine\DBAL\Events;
+use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Schema\AbstractAsset;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
@@ -38,11 +39,9 @@ use function array_search;
 use function array_values;
 use function count;
 use function current;
-use function end;
-use function explode;
+use function get_class;
 use function in_array;
 use function sprintf;
-use function str_replace;
 use function strcasecmp;
 use function strlen;
 use function strtolower;
@@ -53,23 +52,16 @@ abstract class SchemaManagerFunctionalTestCase extends DbalFunctionalTestCase
     /** @var AbstractSchemaManager */
     protected $schemaManager;
 
-    protected function getPlatformName(): string
-    {
-        $class     = static::class;
-        $e         = explode('\\', $class);
-        $testClass = end($e);
-
-        return strtolower(str_replace('SchemaManagerTest', '', $testClass));
-    }
+    abstract protected function supportsPlatform(AbstractPlatform $platform): bool;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $dbms = $this->getPlatformName();
+        $platform = $this->connection->getDatabasePlatform();
 
-        if ($this->connection->getDatabasePlatform()->getName() !== $dbms) {
-            $this->markTestSkipped(static::class . ' requires the use of ' . $dbms);
+        if (! $this->supportsPlatform($platform)) {
+            $this->markTestSkipped(sprintf('Skipping since connected to %s', get_class($platform)));
         }
 
         $this->schemaManager = $this->connection->getSchemaManager();
@@ -749,10 +741,10 @@ abstract class SchemaManagerFunctionalTestCase extends DbalFunctionalTestCase
         $tableFKNew->addIndex(['rename_fk_id'], 'fk_idx');
         $tableFKNew->addForeignKeyConstraint('test_fk_base', ['rename_fk_id'], ['id']);
 
-        $c         = new Comparator();
-        $tableDiff = $c->diffTable($tableFK, $tableFKNew);
+        $diff = (new Comparator())->diffTable($tableFK, $tableFKNew);
+        self::assertNotFalse($diff);
 
-        $this->schemaManager->alterTable($tableDiff);
+        $this->schemaManager->alterTable($diff);
 
         $table       = $this->schemaManager->listTableDetails('test_fk_rename');
         $foreignKeys = $table->getForeignKeys();
@@ -789,9 +781,10 @@ abstract class SchemaManagerFunctionalTestCase extends DbalFunctionalTestCase
         $foreignTable2 = clone $foreignTable;
         $foreignTable2->renameIndex('rename_index_fk_idx', 'renamed_index_fk_idx');
 
-        $comparator = new Comparator();
+        $diff = (new Comparator())->diffTable($foreignTable, $foreignTable2);
+        self::assertNotFalse($diff);
 
-        $this->schemaManager->alterTable($comparator->diffTable($foreignTable, $foreignTable2));
+        $this->schemaManager->alterTable($diff);
 
         $foreignTable = $this->schemaManager->listTableDetails('test_rename_index_foreign');
 
@@ -966,7 +959,7 @@ abstract class SchemaManagerFunctionalTestCase extends DbalFunctionalTestCase
      */
     protected function getTestTable(string $name, array $options = []): Table
     {
-        $table = new Table($name, [], [], [], false, $options);
+        $table = new Table($name, [], [], [], 0, $options);
         $table->setSchemaConfig($this->schemaManager->createSchemaConfig());
         $table->addColumn('id', 'integer', ['notnull' => true]);
         $table->setPrimaryKey(['id']);
@@ -978,7 +971,7 @@ abstract class SchemaManagerFunctionalTestCase extends DbalFunctionalTestCase
 
     protected function getTestCompositeTable(string $name): Table
     {
-        $table = new Table($name, [], [], [], false, []);
+        $table = new Table($name, [], [], [], 0, []);
         $table->setSchemaConfig($this->schemaManager->createSchemaConfig());
         $table->addColumn('id', 'integer', ['notnull' => true]);
         $table->addColumn('other_id', 'integer', ['notnull' => true]);
@@ -1069,9 +1062,10 @@ abstract class SchemaManagerFunctionalTestCase extends DbalFunctionalTestCase
         $diffTable->changeColumn('column6', ['default' => 666]);
         $diffTable->changeColumn('column7', ['default' => null]);
 
-        $comparator = new Comparator();
+        $diff = (new Comparator())->diffTable($table, $diffTable);
+        self::assertNotFalse($diff);
 
-        $this->schemaManager->alterTable($comparator->diffTable($table, $diffTable));
+        $this->schemaManager->alterTable($diff);
 
         $columns = $this->schemaManager->listTableColumns('col_def_lifecycle');
 

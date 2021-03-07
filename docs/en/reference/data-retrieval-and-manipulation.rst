@@ -379,6 +379,45 @@ Execute the query and fetch all results into an array:
     )
     */
 
+fetchAllKeyValue()
+~~~~~~~~~~~~~~~~~~
+
+Execute the query and fetch the first two columns into an associative array as keys and values respectively:
+
+.. code-block:: php
+
+    <?php
+    $users = $conn->fetchAllKeyValue('SELECT username, password FROM user');
+
+    /*
+    array(
+      'jwage' => 'changeme',
+    )
+    */
+
+.. note::
+   All additional columns will be ignored and are only allowed to be selected by DBAL for its internal purposes.
+
+fetchAllAssociativeIndexed()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Execute the query and fetch the data as an associative array where the key represents the first column and the value is
+an associative array of the rest of the columns and their values:
+
+.. code-block:: php
+
+    <?php
+    $users = $conn->fetchAllAssociativeIndexed('SELECT id, username, password FROM user');
+
+    /*
+    array(
+        1 => array(
+          'username' => 'jwage',
+          'password' => 'changeme',
+        )
+    )
+    */
+
 fetchNumeric()
 ~~~~~~~~~~~~~~
 
@@ -424,6 +463,34 @@ Retrieve associative array of the first result row.
     */
 
 There are also convenience methods for data manipulation queries:
+
+iterateKeyValue()
+~~~~~~~~~~~~~~~~~
+
+Execute the query and iterate over the first two columns as keys and values respectively:
+
+.. code-block:: php
+
+    <?php
+    foreach ($conn->iterateKeyValue('SELECT username, password FROM user') as $username => $password) {
+        // ...
+    }
+
+.. note::
+   All additional columns will be ignored and are only allowed to be selected by DBAL for its internal purposes.
+
+iterateAssociativeIndexed()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Execute the query and iterate over the result with the key representing the first column and the value being
+an associative array of the rest of the columns and their values:
+
+.. code-block:: php
+
+    <?php
+    foreach ($conn->iterateAssociativeIndexed('SELECT id, username, password FROM user') as $id => $data) {
+        // ...
+    }
 
 delete()
 ~~~~~~~~~
