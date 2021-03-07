@@ -1,5 +1,53 @@
 # Upgrade to 2.12
 
+## Deprecated non-zero based positional parameter keys
+
+The usage of one-based and other non-zero-based keys when binding positional parameters is deprecated.
+
+It is recommended to not use any array keys so that the value of the parameter array complies with the [`list<>`](https://psalm.dev/docs/annotating_code/type_syntax/array_types/) type constraint.
+
+```php
+// This is valid (implicit zero-based parameter indexes)
+$conn->fetchNumeric('SELECT ?, ?', [1, 2]);
+
+// This is invalid (one-based parameter indexes)
+$conn->fetchNumeric('SELECT ?, ?', [1 => 1, 2 => 2]);
+
+// This is invalid (arbitrary parameter indexes)
+$conn->fetchNumeric('SELECT ?, ?', [-31 => 1, 5 => 2]);
+
+// This is invalid (non-sequential parameter indexes)
+$conn->fetchNumeric('SELECT ?, ?', [0 => 1, 3 => 2]);
+```
+
+## Deprecated skipping prepared statement parameters
+
+Some underlying drivers currently allow skipping prepared statement parameters. For instance:
+
+```php
+$conn->fetchOne('SELECT ?');
+// NULL
+```
+
+This behavior should not be relied upon and may change in future versions.
+
+## Deprecated colon prefix for prepared statement parameters
+
+The usage of the colon prefix when binding named parameters is deprecated.
+
+```php
+$sql  = 'SELECT * FROM users WHERE name = :name OR username = :username';
+$stmt = $conn->prepare($sql);
+
+// The usage of the leading colon is deprecated
+$stmt->bindValue(':name', $name);
+
+// Only the parameter name should be passed
+$stmt->bindValue('username', $username);
+
+$stmt->execute();
+```
+
 ## PDO signature changes with php 8
 
 In php 8.0, the method signatures of two PDO classes which are extended by DBAL have changed. This affects the following classes:
@@ -76,7 +124,7 @@ The following PDO-related classes outside of the PDO namespace have been depreca
 3. `prefersSequences()`.
 4. `supportsForeignKeyOnUpdate()`.
 
-##`ServerInfoAwareConnection::requiresQueryForServerVersion()` is deprecated.
+## `ServerInfoAwareConnection::requiresQueryForServerVersion()` is deprecated.
 
 The `ServerInfoAwareConnection::requiresQueryForServerVersion()` method has been deprecated as an implementation detail which is the same for almost all supported drivers.
 
