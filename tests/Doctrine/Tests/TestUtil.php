@@ -5,8 +5,12 @@ namespace Doctrine\Tests;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use PHPUnit\Framework\Assert;
+
 use function explode;
 use function extension_loaded;
+use function strlen;
+use function strpos;
+use function substr;
 use function unlink;
 
 /**
@@ -18,27 +22,25 @@ class TestUtil
     private static $initialized = false;
 
     /**
-     * Gets a <b>real</b> database connection using the following parameters
+     * Creates a new <b>test</b> database connection using the following parameters
      * of the $GLOBALS array:
      *
-     * 'db_type' : The name of the Doctrine DBAL database driver to use.
-     * 'db_username' : The username to use for connecting.
-     * 'db_password' : The password to use for connecting.
-     * 'db_host' : The hostname of the database to connect to.
-     * 'db_server' : The server name of the database to connect to
-     *               (optional, some vendors allow multiple server instances with different names on the same host).
-     * 'db_name' : The name of the database to connect to.
-     * 'db_port' : The port of the database to connect to.
+     * 'db_driver':   The name of the Doctrine DBAL database driver to use.
+     * 'db_user':     The username to use for connecting.
+     * 'db_password': The password to use for connecting.
+     * 'db_host':     The hostname of the database to connect to.
+     * 'db_server':   The server name of the database to connect to
+     *                (optional, some vendors allow multiple server instances with different names on the same host).
+     * 'db_dbname':   The name of the database to connect to.
+     * 'db_port':     The port of the database to connect to.
      *
      * Usually these variables of the $GLOBALS array are filled by PHPUnit based
      * on an XML configuration file. If no such parameters exist, an SQLite
      * in-memory database is used.
      *
-     * IMPORTANT: Each invocation of this method returns a NEW database connection.
-     *
      * @return Connection The database connection instance.
      */
-    public static function getConnection() : Connection
+    public static function getConnection(): Connection
     {
         if (self::hasRequiredConnectionParams() && ! self::$initialized) {
             self::initializeDatabase();
@@ -55,61 +57,47 @@ class TestUtil
     /**
      * @return mixed[]
      */
-    public static function getConnectionParams() : array
+    public static function getConnectionParams(): array
     {
         if (self::hasRequiredConnectionParams()) {
-            return self::getParamsForMainConnection();
+            return self::getTestConnectionParameters();
         }
 
         return self::getFallbackConnectionParams();
     }
 
-    private static function hasRequiredConnectionParams() : bool
+    private static function hasRequiredConnectionParams(): bool
     {
-        return isset(
-            $GLOBALS['db_type'],
-            $GLOBALS['db_username'],
-            $GLOBALS['db_password'],
-            $GLOBALS['db_host'],
-            $GLOBALS['db_name'],
-            $GLOBALS['db_port']
-        )
-        && isset(
-            $GLOBALS['tmpdb_type'],
-            $GLOBALS['tmpdb_username'],
-            $GLOBALS['tmpdb_password'],
-            $GLOBALS['tmpdb_host'],
-            $GLOBALS['tmpdb_port']
-        );
+        return isset($GLOBALS['db_driver']);
     }
 
-    private static function initializeDatabase() : void
+    private static function initializeDatabase(): void
     {
-        $realDbParams = self::getParamsForMainConnection();
-        $tmpDbParams  = self::getParamsForTemporaryConnection();
+        $testConnParams = self::getTestConnectionParameters();
+        $privConnParams = self::getPrivilegedConnectionParameters();
 
-        $realConn = DriverManager::getConnection($realDbParams);
+        $testConn = DriverManager::getConnection($testConnParams);
 
-        // Connect to tmpdb in order to drop and create the real test db.
-        $tmpConn = DriverManager::getConnection($tmpDbParams);
+        // Connect as a privileged user to create and drop the test database.
+        $privConn = DriverManager::getConnection($privConnParams);
 
-        $platform = $tmpConn->getDatabasePlatform();
+        $platform = $privConn->getDatabasePlatform();
 
         if ($platform->supportsCreateDropDatabase()) {
-            $dbname = $realConn->getDatabase();
-            $realConn->close();
+            $dbname = $testConn->getDatabase();
+            $testConn->close();
 
-            $tmpConn->getSchemaManager()->dropAndCreateDatabase($dbname);
+            $privConn->getSchemaManager()->dropAndCreateDatabase($dbname);
 
-            $tmpConn->close();
+            $privConn->close();
         } else {
-            $sm = $realConn->getSchemaManager();
+            $sm = $testConn->getSchemaManager();
 
             $schema = $sm->createSchema();
-            $stmts  = $schema->toDropSql($realConn->getDatabasePlatform());
+            $stmts  = $schema->toDropSql($testConn->getDatabasePlatform());
 
             foreach ($stmts as $stmt) {
-                $realConn->exec($stmt);
+                $testConn->exec($stmt);
             }
         }
     }
@@ -117,7 +105,7 @@ class TestUtil
     /**
      * @return mixed[]
      */
-    private static function getFallbackConnectionParams() : array
+    private static function getFallbackConnectionParams(): array
     {
         if (! extension_loaded('pdo_sqlite')) {
             Assert::markTestSkipped('PDO SQLite extension is not loaded');
@@ -136,7 +124,7 @@ class TestUtil
         return $params;
     }
 
-    private static function addDbEventSubscribers(Connection $conn) : void
+    private static function addDbEventSubscribers(Connection $conn): void
     {
         if (! isset($GLOBALS['db_event_subscribers'])) {
             return;
@@ -152,59 +140,72 @@ class TestUtil
     /**
      * @return mixed[]
      */
-    private static function getParamsForTemporaryConnection() : array
+    private static function getPrivilegedConnectionParameters(): array
     {
-        $connectionParams = [
-            'driver' => $GLOBALS['tmpdb_type'],
-            'user' => $GLOBALS['tmpdb_username'],
-            'password' => $GLOBALS['tmpdb_password'],
-            'host' => $GLOBALS['tmpdb_host'],
-            'dbname' => null,
-            'port' => $GLOBALS['tmpdb_port'],
-        ];
-
-        if (isset($GLOBALS['tmpdb_name'])) {
-            $connectionParams['dbname'] = $GLOBALS['tmpdb_name'];
+        if (isset($GLOBALS['tmpdb_driver'])) {
+            return self::mapConnectionParameters($GLOBALS, 'tmpdb_');
         }
 
-        if (isset($GLOBALS['tmpdb_server'])) {
-            $connectionParams['server'] = $GLOBALS['tmpdb_server'];
-        }
+        $parameters = self::mapConnectionParameters($GLOBALS, 'db_');
+        unset($parameters['dbname']);
 
-        if (isset($GLOBALS['tmpdb_unix_socket'])) {
-            $connectionParams['unix_socket'] = $GLOBALS['tmpdb_unix_socket'];
-        }
-
-        return $connectionParams;
+        return $parameters;
     }
 
     /**
      * @return mixed[]
      */
-    private static function getParamsForMainConnection() : array
+    private static function getTestConnectionParameters(): array
     {
-        $connectionParams = [
-            'driver' => $GLOBALS['db_type'],
-            'user' => $GLOBALS['db_username'],
-            'password' => $GLOBALS['db_password'],
-            'host' => $GLOBALS['db_host'],
-            'dbname' => $GLOBALS['db_name'],
-            'port' => $GLOBALS['db_port'],
-        ];
-
-        if (isset($GLOBALS['db_server'])) {
-            $connectionParams['server'] = $GLOBALS['db_server'];
-        }
-
-        if (isset($GLOBALS['db_unix_socket'])) {
-            $connectionParams['unix_socket'] = $GLOBALS['db_unix_socket'];
-        }
-
-        return $connectionParams;
+        return self::mapConnectionParameters($GLOBALS, 'db_');
     }
 
-    public static function getTempConnection() : Connection
+    /**
+     * @param array<string,mixed> $configuration
+     *
+     * @return array<string,mixed>
+     */
+    private static function mapConnectionParameters(array $configuration, string $prefix): array
     {
-        return DriverManager::getConnection(self::getParamsForTemporaryConnection());
+        $parameters = [];
+
+        foreach (
+            [
+                'driver',
+                'user',
+                'password',
+                'host',
+                'dbname',
+                'port',
+                'server',
+                'ssl_key',
+                'ssl_cert',
+                'ssl_ca',
+                'ssl_capath',
+                'ssl_cipher',
+                'unix_socket',
+            ] as $parameter
+        ) {
+            if (! isset($configuration[$prefix . $parameter])) {
+                continue;
+            }
+
+            $parameters[$parameter] = $configuration[$prefix . $parameter];
+        }
+
+        foreach ($configuration as $param => $value) {
+            if (strpos($param, $prefix . 'driver_option_') !== 0) {
+                continue;
+            }
+
+            $parameters['driverOptions'][substr($param, strlen($prefix . 'driver_option_'))] = $value;
+        }
+
+        return $parameters;
+    }
+
+    public static function getPrivilegedConnection(): Connection
+    {
+        return DriverManager::getConnection(self::getPrivilegedConnectionParameters());
     }
 }

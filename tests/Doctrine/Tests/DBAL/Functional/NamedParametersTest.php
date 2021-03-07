@@ -8,18 +8,17 @@ use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\Tests\DbalFunctionalTestCase;
 use Throwable;
-use const CASE_LOWER;
+
 use function array_change_key_case;
 
-/**
- * @group DDC-1372
- */
+use const CASE_LOWER;
+
 class NamedParametersTest extends DbalFunctionalTestCase
 {
     /**
      * @return iterable<int, array<int, mixed>>
      */
-    public static function ticketProvider() : iterable
+    public static function ticketProvider(): iterable
     {
         return [
             [
@@ -150,7 +149,7 @@ class NamedParametersTest extends DbalFunctionalTestCase
         ];
     }
 
-    protected function setUp() : void
+    protected function setUp(): void
     {
         parent::setUp();
 
@@ -210,7 +209,7 @@ class NamedParametersTest extends DbalFunctionalTestCase
      *
      * @dataProvider ticketProvider
      */
-    public function testTicket(string $query, array $params, array $types, array $expected) : void
+    public function testTicket(string $query, array $params, array $types, array $expected): void
     {
         $stmt   = $this->connection->executeQuery($query, $params, $types);
         $result = $stmt->fetchAll(FetchMode::ASSOCIATIVE);

@@ -8,10 +8,7 @@ use Doctrine\Tests\DbalTestCase;
 
 class SequenceTest extends DbalTestCase
 {
-    /**
-     * @group DDC-1657
-     */
-    public function testIsAutoincrementFor() : void
+    public function testIsAutoincrementFor(): void
     {
         $table = new Table('foo');
         $table->addColumn('id', 'integer', ['autoincrement' => true]);
@@ -26,7 +23,7 @@ class SequenceTest extends DbalTestCase
         self::assertFalse($sequence3->isAutoIncrementsFor($table));
     }
 
-    public function testIsAutoincrementForCaseInsensitive() : void
+    public function testIsAutoincrementForCaseInsensitive(): void
     {
         $table = new Table('foo');
         $table->addColumn('ID', 'integer', ['autoincrement' => true]);

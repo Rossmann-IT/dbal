@@ -7,10 +7,13 @@ use Doctrine\DBAL\Driver\Mysqli\MysqliException;
 use Doctrine\DBAL\Platforms\MySqlPlatform;
 use Doctrine\Tests\DbalFunctionalTestCase;
 use PHPUnit\Framework\MockObject\MockObject;
-use function extension_loaded;
+
 use function restore_error_handler;
 use function set_error_handler;
 
+/**
+ * @requires extension mysqli
+ */
 class MysqliConnectionTest extends DbalFunctionalTestCase
 {
     /**
@@ -20,12 +23,8 @@ class MysqliConnectionTest extends DbalFunctionalTestCase
      */
     private $connectionMock;
 
-    protected function setUp() : void
+    protected function setUp(): void
     {
-        if (! extension_loaded('mysqli')) {
-            $this->markTestSkipped('mysqli is not installed.');
-        }
-
         parent::setUp();
 
         if (! $this->connection->getDatabasePlatform() instanceof MySqlPlatform) {
@@ -37,17 +36,18 @@ class MysqliConnectionTest extends DbalFunctionalTestCase
             ->getMockForAbstractClass();
     }
 
-    public function testDoesNotRequireQueryForServerVersion() : void
+    public function testDoesNotRequireQueryForServerVersion(): void
     {
         self::assertFalse($this->connectionMock->requiresQueryForServerVersion());
     }
 
-    public function testRestoresErrorHandlerOnException() : void
+    public function testRestoresErrorHandlerOnException(): void
     {
-        $handler         = static function () : bool {
+        $handler = static function (): bool {
             self::fail('Never expected this to be called');
         };
-        $default_handler = set_error_handler($handler);
+
+        $defaultHandler = set_error_handler($handler);
 
         try {
             new MysqliConnection(['host' => '255.255.255.255'], 'user', 'pass');
@@ -56,7 +56,7 @@ class MysqliConnectionTest extends DbalFunctionalTestCase
             self::assertSame('Network is unreachable', $e->getMessage());
         }
 
-        self::assertSame($handler, set_error_handler($default_handler), 'Restoring error handler failed.');
+        self::assertSame($handler, set_error_handler($defaultHandler), 'Restoring error handler failed.');
         restore_error_handler();
         restore_error_handler();
     }

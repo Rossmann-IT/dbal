@@ -17,30 +17,23 @@ class ConfigurationTest extends DbalTestCase
      */
     protected $config;
 
-    /**
-     * {@inheritdoc}
-     */
-    protected function setUp() : void
+    protected function setUp(): void
     {
         $this->config = new Configuration();
     }
 
     /**
      * Tests that the default auto-commit mode for connections can be retrieved from the configuration container.
-     *
-     * @group DBAL-81
      */
-    public function testReturnsDefaultConnectionAutoCommitMode() : void
+    public function testReturnsDefaultConnectionAutoCommitMode(): void
     {
         self::assertTrue($this->config->getAutoCommit());
     }
 
     /**
      * Tests that the default auto-commit mode for connections can be set in the configuration container.
-     *
-     * @group DBAL-81
      */
-    public function testSetsDefaultConnectionAutoCommitMode() : void
+    public function testSetsDefaultConnectionAutoCommitMode(): void
     {
         $this->config->setAutoCommit(false);
 

@@ -3,8 +3,7 @@
 namespace Doctrine\Tests\DBAL\Driver;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Driver;
-use Doctrine\DBAL\Driver\AbstractSQLServerDriver;
+use Doctrine\DBAL\Driver\AbstractSQLServerDriver\PortWithoutHost;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\SQLServer2005Platform;
 use Doctrine\DBAL\Platforms\SQLServer2008Platform;
@@ -13,19 +12,14 @@ use Doctrine\DBAL\Platforms\SQLServerPlatform;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\SQLServerSchemaManager;
 
-class AbstractSQLServerDriverTest extends AbstractDriverTest
+abstract class AbstractSQLServerDriverTest extends AbstractDriverTest
 {
-    protected function createDriver() : Driver
-    {
-        return $this->getMockForAbstractClass(AbstractSQLServerDriver::class);
-    }
-
-    protected function createPlatform() : AbstractPlatform
+    protected function createPlatform(): AbstractPlatform
     {
         return new SQLServer2008Platform();
     }
 
-    protected function createSchemaManager(Connection $connection) : AbstractSchemaManager
+    protected function createSchemaManager(Connection $connection): AbstractSchemaManager
     {
         return new SQLServerSchemaManager($connection);
     }
@@ -33,7 +27,7 @@ class AbstractSQLServerDriverTest extends AbstractDriverTest
     /**
      * {@inheritDoc}
      */
-    protected function getDatabasePlatformsForVersions() : array
+    protected function getDatabasePlatformsForVersions(): array
     {
         return [
             ['9', SQLServerPlatform::class],
@@ -63,5 +57,11 @@ class AbstractSQLServerDriverTest extends AbstractDriverTest
             ['11.00.2101', SQLServer2012Platform::class],
             ['12', SQLServer2012Platform::class],
         ];
+    }
+
+    public function testPortWithoutHost(): void
+    {
+        $this->expectException(PortWithoutHost::class);
+        $this->driver->connect(['port' => 1433]);
     }
 }

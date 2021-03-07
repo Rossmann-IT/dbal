@@ -6,12 +6,9 @@ use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\Tests\DbalFunctionalTestCase;
 
-/**
- * @group DBAL-510
- */
 class DBAL510Test extends DbalFunctionalTestCase
 {
-    protected function setUp() : void
+    protected function setUp(): void
     {
         parent::setUp();
 
@@ -22,7 +19,7 @@ class DBAL510Test extends DbalFunctionalTestCase
         $this->markTestSkipped('PostgreSQL Only test');
     }
 
-    public function testSearchPathSchemaChanges() : void
+    public function testSearchPathSchemaChanges(): void
     {
         $table = new Table('dbal510tbl');
         $table->addColumn('id', 'integer');

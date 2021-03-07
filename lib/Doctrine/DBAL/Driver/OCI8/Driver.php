@@ -10,7 +10,7 @@ use Doctrine\DBAL\Schema\Oracle121SchemaManager;
 use Doctrine\DBAL\Schema\Oracle122SchemaManager;
 use Doctrine\DBAL\Schema\OracleSchemaManager;
 
-use const OCI_DEFAULT;
+use const OCI_NO_AUTO_COMMIT;
 
 /**
  * A Doctrine DBAL driver for the Oracle OCI8 PHP extensions.
@@ -28,7 +28,7 @@ class Driver extends AbstractOracleDriver
                 (string) $password,
                 $this->_constructDsn($params),
                 $params['charset'] ?? '',
-                $params['sessionMode'] ?? OCI_DEFAULT,
+                $params['sessionMode'] ?? OCI_NO_AUTO_COMMIT,
                 $params['persistent'] ?? false
             );
         } catch (OCI8Exception $e) {

@@ -9,12 +9,9 @@ use Doctrine\DBAL\Types\DecimalType;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 
-/**
- * @group DBAL-461
- */
 class DBAL461Test extends TestCase
 {
-    public function testIssue() : void
+    public function testIssue(): void
     {
         $conn     = $this->createMock(Connection::class);
         $platform = $this->getMockForAbstractClass(AbstractPlatform::class);

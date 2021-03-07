@@ -9,16 +9,14 @@ use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\Tests\DbalFunctionalTestCase;
+
 use function fopen;
 use function str_repeat;
 use function stream_get_contents;
 
-/**
- * @group DBAL-6
- */
 class BlobTest extends DbalFunctionalTestCase
 {
-    protected function setUp() : void
+    protected function setUp(): void
     {
         parent::setUp();
 
@@ -30,20 +28,20 @@ class BlobTest extends DbalFunctionalTestCase
 
         $table = new Table('blob_table');
         $table->addColumn('id', 'integer');
-        $table->addColumn('clobfield', 'text');
-        $table->addColumn('blobfield', 'blob');
+        $table->addColumn('clobcolumn', 'text');
+        $table->addColumn('blobcolumn', 'blob');
         $table->setPrimaryKey(['id']);
 
         $sm = $this->connection->getSchemaManager();
         $sm->dropAndCreateTable($table);
     }
 
-    public function testInsert() : void
+    public function testInsert(): void
     {
         $ret = $this->connection->insert('blob_table', [
             'id'          => 1,
-            'clobfield'   => 'test',
-            'blobfield'   => 'test',
+            'clobcolumn'   => 'test',
+            'blobcolumn'   => 'test',
         ], [
             ParameterType::INTEGER,
             ParameterType::STRING,
@@ -53,7 +51,7 @@ class BlobTest extends DbalFunctionalTestCase
         self::assertEquals(1, $ret);
     }
 
-    public function testInsertProcessesStream() : void
+    public function testInsertProcessesStream(): void
     {
         // https://github.com/doctrine/dbal/issues/3290
         if ($this->connection->getDriver() instanceof OCI8Driver) {
@@ -63,8 +61,8 @@ class BlobTest extends DbalFunctionalTestCase
         $longBlob = str_repeat('x', 4 * 8192); // send 4 chunks
         $this->connection->insert('blob_table', [
             'id'        => 1,
-            'clobfield' => 'ignored',
-            'blobfield' => fopen('data://text/plain,' . $longBlob, 'r'),
+            'clobcolumn' => 'ignored',
+            'blobcolumn' => fopen('data://text/plain,' . $longBlob, 'r'),
         ], [
             ParameterType::INTEGER,
             ParameterType::STRING,
@@ -74,12 +72,12 @@ class BlobTest extends DbalFunctionalTestCase
         $this->assertBlobContains($longBlob);
     }
 
-    public function testSelect() : void
+    public function testSelect(): void
     {
         $this->connection->insert('blob_table', [
             'id'          => 1,
-            'clobfield'   => 'test',
-            'blobfield'   => 'test',
+            'clobcolumn'   => 'test',
+            'blobcolumn'   => 'test',
         ], [
             ParameterType::INTEGER,
             ParameterType::STRING,
@@ -89,19 +87,19 @@ class BlobTest extends DbalFunctionalTestCase
         $this->assertBlobContains('test');
     }
 
-    public function testUpdate() : void
+    public function testUpdate(): void
     {
         $this->connection->insert('blob_table', [
             'id' => 1,
-            'clobfield' => 'test',
-            'blobfield' => 'test',
+            'clobcolumn' => 'test',
+            'blobcolumn' => 'test',
         ], [
             ParameterType::INTEGER,
             ParameterType::STRING,
             ParameterType::LARGE_OBJECT,
         ]);
 
-        $this->connection->update('blob_table', ['blobfield' => 'test2'], ['id' => 1], [
+        $this->connection->update('blob_table', ['blobcolumn' => 'test2'], ['id' => 1], [
             ParameterType::LARGE_OBJECT,
             ParameterType::INTEGER,
         ]);
@@ -109,7 +107,7 @@ class BlobTest extends DbalFunctionalTestCase
         $this->assertBlobContains('test2');
     }
 
-    public function testUpdateProcessesStream() : void
+    public function testUpdateProcessesStream(): void
     {
         // https://github.com/doctrine/dbal/issues/3290
         if ($this->connection->getDriver() instanceof OCI8Driver) {
@@ -118,8 +116,8 @@ class BlobTest extends DbalFunctionalTestCase
 
         $this->connection->insert('blob_table', [
             'id'          => 1,
-            'clobfield'   => 'ignored',
-            'blobfield'   => 'test',
+            'clobcolumn'   => 'ignored',
+            'blobcolumn'   => 'test',
         ], [
             ParameterType::INTEGER,
             ParameterType::STRING,
@@ -128,7 +126,7 @@ class BlobTest extends DbalFunctionalTestCase
 
         $this->connection->update('blob_table', [
             'id'          => 1,
-            'blobfield'   => fopen('data://text/plain,test2', 'r'),
+            'blobcolumn'   => fopen('data://text/plain,test2', 'r'),
         ], ['id' => 1], [
             ParameterType::INTEGER,
             ParameterType::LARGE_OBJECT,
@@ -137,13 +135,15 @@ class BlobTest extends DbalFunctionalTestCase
         $this->assertBlobContains('test2');
     }
 
-    public function testBindParamProcessesStream() : void
+    public function testBindParamProcessesStream(): void
     {
         if ($this->connection->getDriver() instanceof OCI8Driver) {
             $this->markTestIncomplete('The oci8 driver does not support stream resources as parameters');
         }
 
-        $stmt = $this->connection->prepare("INSERT INTO blob_table(id, clobfield, blobfield) VALUES (1, 'ignored', ?)");
+        $stmt = $this->connection->prepare(
+            "INSERT INTO blob_table(id, clobcolumn, blobcolumn) VALUES (1, 'ignored', ?)"
+        );
 
         $stream = null;
         $stmt->bindParam(1, $stream, ParameterType::LARGE_OBJECT);
@@ -156,9 +156,9 @@ class BlobTest extends DbalFunctionalTestCase
         $this->assertBlobContains('test');
     }
 
-    private function assertBlobContains(string $text) : void
+    private function assertBlobContains(string $text): void
     {
-        $rows = $this->connection->query('SELECT blobfield FROM blob_table')->fetchAll(FetchMode::COLUMN);
+        $rows = $this->connection->query('SELECT blobcolumn FROM blob_table')->fetchAll(FetchMode::COLUMN);
 
         self::assertCount(1, $rows);
 

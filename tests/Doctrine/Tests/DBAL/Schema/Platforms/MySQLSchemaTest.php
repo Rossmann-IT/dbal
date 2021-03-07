@@ -16,13 +16,13 @@ class MySQLSchemaTest extends TestCase
     /** @var AbstractPlatform */
     private $platform;
 
-    protected function setUp() : void
+    protected function setUp(): void
     {
         $this->comparator = new Comparator();
         $this->platform   = new MySqlPlatform();
     }
 
-    public function testSwitchPrimaryKeyOrder() : void
+    public function testSwitchPrimaryKeyOrder(): void
     {
         $tableOld = new Table('test');
         $tableOld->addColumn('foo_id', 'integer');
@@ -44,10 +44,7 @@ class MySQLSchemaTest extends TestCase
         );
     }
 
-    /**
-     * @group DBAL-132
-     */
-    public function testGenerateForeignKeySQL() : void
+    public function testGenerateForeignKeySQL(): void
     {
         $tableOld = new Table('test');
         $tableOld->addColumn('foo_id', 'integer');
@@ -58,13 +55,16 @@ class MySQLSchemaTest extends TestCase
             $sqls[] = $this->platform->getCreateForeignKeySQL($fk, $tableOld);
         }
 
-        self::assertEquals(['ALTER TABLE test ADD CONSTRAINT FK_D87F7E0C8E48560F FOREIGN KEY (foo_id) REFERENCES test_foreign (foo_id)'], $sqls);
+        self::assertEquals(
+            [
+                'ALTER TABLE test ADD CONSTRAINT FK_D87F7E0C8E48560F FOREIGN KEY (foo_id)'
+                    . ' REFERENCES test_foreign (foo_id)',
+            ],
+            $sqls
+        );
     }
 
-    /**
-     * @group DDC-1737
-     */
-    public function testClobNoAlterTable() : void
+    public function testClobNoAlterTable(): void
     {
         $tableOld = new Table('test');
         $tableOld->addColumn('id', 'integer');

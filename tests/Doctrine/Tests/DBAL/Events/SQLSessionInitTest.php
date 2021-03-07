@@ -8,12 +8,9 @@ use Doctrine\DBAL\Event\Listeners\SQLSessionInit;
 use Doctrine\DBAL\Events;
 use Doctrine\Tests\DbalTestCase;
 
-/**
- * @group DBAL-169
- */
 class SQLSessionInitTest extends DbalTestCase
 {
-    public function testPostConnect() : void
+    public function testPostConnect(): void
     {
         $connectionMock = $this->createMock(Connection::class);
         $connectionMock->expects($this->once())
@@ -26,7 +23,7 @@ class SQLSessionInitTest extends DbalTestCase
         $listener->postConnect($eventArgs);
     }
 
-    public function testGetSubscribedEvents() : void
+    public function testGetSubscribedEvents(): void
     {
         $listener = new SQLSessionInit("SET SEARCH_PATH TO foo, public, TIMEZONE TO 'Europe/Berlin'");
         self::assertEquals([Events::postConnect], $listener->getSubscribedEvents());

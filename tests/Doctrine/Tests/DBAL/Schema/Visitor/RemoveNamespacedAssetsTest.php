@@ -7,14 +7,12 @@ use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\SchemaConfig;
 use Doctrine\DBAL\Schema\Visitor\RemoveNamespacedAssets;
 use PHPUnit\Framework\TestCase;
+
 use function array_keys;
 
 class RemoveNamespacedAssetsTest extends TestCase
 {
-    /**
-     * @group DBAL-204
-     */
-    public function testRemoveNamespacedAssets() : void
+    public function testRemoveNamespacedAssets(): void
     {
         $config = new SchemaConfig();
         $config->setName('test');
@@ -27,13 +25,10 @@ class RemoveNamespacedAssetsTest extends TestCase
         $schema->visit(new RemoveNamespacedAssets());
 
         $tables = $schema->getTables();
-        self::assertEquals(['test.test', 'test.baz'], array_keys($tables), "Only 2 tables should be present, both in 'test' namespace.");
+        self::assertEquals(['test.test', 'test.baz'], array_keys($tables));
     }
 
-    /**
-     * @group DBAL-204
-     */
-    public function testCleanupForeignKeys() : void
+    public function testCleanupForeignKeys(): void
     {
         $config = new SchemaConfig();
         $config->setName('test');
@@ -53,10 +48,7 @@ class RemoveNamespacedAssetsTest extends TestCase
         self::assertCount(1, $sql, 'Just one CREATE TABLE statement, no foreign key and table to foo.bar');
     }
 
-    /**
-     * @group DBAL-204
-     */
-    public function testCleanupForeignKeysDifferentOrder() : void
+    public function testCleanupForeignKeysDifferentOrder(): void
     {
         $config = new SchemaConfig();
         $config->setName('test');

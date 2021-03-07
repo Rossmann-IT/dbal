@@ -7,7 +7,7 @@ use Doctrine\DBAL\Logging\DebugStack;
 use Exception;
 use PHPUnit\Framework\AssertionFailedError;
 use Throwable;
-use const PHP_EOL;
+
 use function array_map;
 use function array_reverse;
 use function count;
@@ -17,6 +17,8 @@ use function is_object;
 use function is_scalar;
 use function strpos;
 use function var_export;
+
+use const PHP_EOL;
 
 abstract class DbalFunctionalTestCase extends DbalTestCase
 {
@@ -33,7 +35,7 @@ abstract class DbalFunctionalTestCase extends DbalTestCase
     /** @var DebugStack */
     protected $sqlLoggerStack;
 
-    protected function resetSharedConn() : void
+    protected function resetSharedConn(): void
     {
         if (! self::$sharedConnection) {
             return;
@@ -43,25 +45,26 @@ abstract class DbalFunctionalTestCase extends DbalTestCase
         self::$sharedConnection = null;
     }
 
-    protected function setUp() : void
+    protected function setUp(): void
     {
         if (! isset(self::$sharedConnection)) {
             self::$sharedConnection = TestUtil::getConnection();
         }
+
         $this->connection = self::$sharedConnection;
 
         $this->sqlLoggerStack = new DebugStack();
         $this->connection->getConfiguration()->setSQLLogger($this->sqlLoggerStack);
     }
 
-    protected function tearDown() : void
+    protected function tearDown(): void
     {
         while ($this->connection->isTransactionActive()) {
             $this->connection->rollBack();
         }
     }
 
-    protected function onNotSuccessfulTest(Throwable $t) : void
+    protected function onNotSuccessfulTest(Throwable $t): void
     {
         if ($t instanceof AssertionFailedError) {
             throw $t;
@@ -101,10 +104,12 @@ abstract class DbalFunctionalTestCase extends DbalTestCase
                 $traceMsg .= $part['file'] . ':' . $part['line'] . PHP_EOL;
             }
 
-            $message = '[' . get_class($t) . '] ' . $t->getMessage() . PHP_EOL . PHP_EOL . 'With queries:' . PHP_EOL . $queries . PHP_EOL . 'Trace:' . PHP_EOL . $traceMsg;
+            $message = '[' . get_class($t) . '] ' . $t->getMessage() . PHP_EOL . PHP_EOL
+                . 'With queries:' . PHP_EOL . $queries . PHP_EOL . 'Trace:' . PHP_EOL . $traceMsg;
 
             throw new Exception($message, (int) $t->getCode(), $t);
         }
+
         throw $t;
     }
 }

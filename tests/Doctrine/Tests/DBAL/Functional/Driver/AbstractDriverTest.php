@@ -16,33 +16,28 @@ abstract class AbstractDriverTest extends DbalFunctionalTestCase
      */
     protected $driver;
 
-    protected function setUp() : void
+    protected function setUp(): void
     {
         parent::setUp();
 
         $this->driver = $this->createDriver();
     }
 
-    /**
-     * @group DBAL-1215
-     */
-    public function testConnectsWithoutDatabaseNameParameter() : void
+    public function testConnectsWithoutDatabaseNameParameter(): void
     {
         $params = $this->connection->getParams();
         unset($params['dbname']);
 
-        $user     = $params['user'] ?? null;
-        $password = $params['password'] ?? null;
+        $user          = $params['user'] ?? null;
+        $password      = $params['password'] ?? null;
+        $driverOptions = $params['driverOptions'] ?? [];
 
-        $connection = $this->driver->connect($params, $user, $password);
+        $connection = $this->driver->connect($params, $user, $password, $driverOptions);
 
         self::assertInstanceOf(DriverConnection::class, $connection);
     }
 
-    /**
-     * @group DBAL-1215
-     */
-    public function testReturnsDatabaseNameWithoutDatabaseNameParameter() : void
+    public function testReturnsDatabaseNameWithoutDatabaseNameParameter(): void
     {
         $params = $this->connection->getParams();
         unset($params['dbname']);
@@ -60,9 +55,9 @@ abstract class AbstractDriverTest extends DbalFunctionalTestCase
         );
     }
 
-    abstract protected function createDriver() : Driver;
+    abstract protected function createDriver(): Driver;
 
-    protected static function getDatabaseNameForConnectionWithoutDatabaseNameParameter() : ?string
+    protected static function getDatabaseNameForConnectionWithoutDatabaseNameParameter(): ?string
     {
         return null;
     }

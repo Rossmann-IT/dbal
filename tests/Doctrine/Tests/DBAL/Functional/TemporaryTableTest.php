@@ -9,7 +9,7 @@ use Throwable;
 
 class TemporaryTableTest extends DbalFunctionalTestCase
 {
-    protected function setUp() : void
+    protected function setUp(): void
     {
         parent::setUp();
         try {
@@ -18,7 +18,7 @@ class TemporaryTableTest extends DbalFunctionalTestCase
         }
     }
 
-    protected function tearDown() : void
+    protected function tearDown(): void
     {
         if ($this->connection) {
             try {
@@ -31,13 +31,12 @@ class TemporaryTableTest extends DbalFunctionalTestCase
         parent::tearDown();
     }
 
-    /**
-     * @group DDC-1337
-     */
-    public function testDropTemporaryTableNotAutoCommitTransaction() : void
+    public function testDropTemporaryTableNotAutoCommitTransaction(): void
     {
-        if ($this->connection->getDatabasePlatform()->getName() === 'sqlanywhere' ||
-            $this->connection->getDatabasePlatform()->getName() === 'oracle') {
+        if (
+            $this->connection->getDatabasePlatform()->getName() === 'sqlanywhere' ||
+            $this->connection->getDatabasePlatform()->getName() === 'oracle'
+        ) {
             $this->markTestSkipped('Test does not work on Oracle and SQL Anywhere.');
         }
 
@@ -62,17 +61,16 @@ class TemporaryTableTest extends DbalFunctionalTestCase
 
         $this->connection->rollBack();
 
-        $rows = $this->connection->fetchAll('SELECT * FROM nontemporary');
-        self::assertEquals([], $rows, 'In an event of an error this result has one row, because of an implicit commit.');
+        // In an event of an error this result has one row, because of an implicit commit
+        self::assertEquals([], $this->connection->fetchAll('SELECT * FROM nontemporary'));
     }
 
-    /**
-     * @group DDC-1337
-     */
-    public function testCreateTemporaryTableNotAutoCommitTransaction() : void
+    public function testCreateTemporaryTableNotAutoCommitTransaction(): void
     {
-        if ($this->connection->getDatabasePlatform()->getName() === 'sqlanywhere' ||
-            $this->connection->getDatabasePlatform()->getName() === 'oracle') {
+        if (
+            $this->connection->getDatabasePlatform()->getName() === 'sqlanywhere' ||
+            $this->connection->getDatabasePlatform()->getName() === 'oracle'
+        ) {
             $this->markTestSkipped('Test does not work on Oracle and SQL Anywhere.');
         }
 
@@ -102,7 +100,7 @@ class TemporaryTableTest extends DbalFunctionalTestCase
         } catch (Throwable $e) {
         }
 
-        $rows = $this->connection->fetchAll('SELECT * FROM nontemporary');
-        self::assertEquals([], $rows, 'In an event of an error this result has one row, because of an implicit commit.');
+        // In an event of an error this result has one row, because of an implicit commit
+        self::assertEquals([], $this->connection->fetchAll('SELECT * FROM nontemporary'));
     }
 }

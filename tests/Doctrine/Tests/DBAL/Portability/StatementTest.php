@@ -10,6 +10,7 @@ use Doctrine\DBAL\Portability\Statement;
 use Doctrine\Tests\DbalTestCase;
 use PHPUnit\Framework\MockObject\MockObject;
 use ReflectionProperty;
+
 use function iterator_to_array;
 
 class StatementTest extends DbalTestCase
@@ -23,20 +24,14 @@ class StatementTest extends DbalTestCase
     /** @var DriverStatement|MockObject */
     protected $wrappedStmt;
 
-    /**
-     * {@inheritdoc}
-     */
-    protected function setUp() : void
+    protected function setUp(): void
     {
         $this->wrappedStmt = $this->createMock(DriverStatement::class);
         $this->conn        = $this->createConnection();
         $this->stmt        = $this->createStatement($this->wrappedStmt, $this->conn);
     }
 
-    /**
-     * @group DBAL-726
-     */
-    public function testBindParam() : void
+    public function testBindParam(): void
     {
         $column   = 'mycolumn';
         $variable = 'myvalue';
@@ -51,7 +46,7 @@ class StatementTest extends DbalTestCase
         self::assertTrue($this->stmt->bindParam($column, $variable, $type, $length));
     }
 
-    public function testBindValue() : void
+    public function testBindValue(): void
     {
         $param = 'myparam';
         $value = 'myvalue';
@@ -65,7 +60,7 @@ class StatementTest extends DbalTestCase
         self::assertTrue($this->stmt->bindValue($param, $value, $type));
     }
 
-    public function testCloseCursor() : void
+    public function testCloseCursor(): void
     {
         $this->wrappedStmt->expects($this->once())
             ->method('closeCursor')
@@ -74,7 +69,7 @@ class StatementTest extends DbalTestCase
         self::assertTrue($this->stmt->closeCursor());
     }
 
-    public function testColumnCount() : void
+    public function testColumnCount(): void
     {
         $columnCount = 666;
 
@@ -85,7 +80,7 @@ class StatementTest extends DbalTestCase
         self::assertSame($columnCount, $this->stmt->columnCount());
     }
 
-    public function testErrorCode() : void
+    public function testErrorCode(): void
     {
         $errorCode = '666';
 
@@ -96,7 +91,7 @@ class StatementTest extends DbalTestCase
         self::assertSame($errorCode, $this->stmt->errorCode());
     }
 
-    public function testErrorInfo() : void
+    public function testErrorInfo(): void
     {
         $errorInfo = ['666', 'Evil error.'];
 
@@ -107,7 +102,7 @@ class StatementTest extends DbalTestCase
         self::assertSame($errorInfo, $this->stmt->errorInfo());
     }
 
-    public function testExecute() : void
+    public function testExecute(): void
     {
         $params = [
             'foo',
@@ -122,7 +117,7 @@ class StatementTest extends DbalTestCase
         self::assertTrue($this->stmt->execute($params));
     }
 
-    public function testSetFetchMode() : void
+    public function testSetFetchMode(): void
     {
         $fetchMode = FetchMode::CUSTOM_OBJECT;
         $arg1      = 'MyClass';
@@ -141,7 +136,7 @@ class StatementTest extends DbalTestCase
         self::assertSame($fetchMode, $re->getValue($this->stmt));
     }
 
-    public function testGetIterator() : void
+    public function testGetIterator(): void
     {
         $this->wrappedStmt->expects($this->exactly(3))
             ->method('fetch')
@@ -150,7 +145,7 @@ class StatementTest extends DbalTestCase
         self::assertSame(['foo', 'bar'], iterator_to_array($this->stmt->getIterator()));
     }
 
-    public function testRowCount() : void
+    public function testRowCount(): void
     {
         $rowCount = 666;
 
@@ -171,7 +166,7 @@ class StatementTest extends DbalTestCase
             ->getMock();
     }
 
-    protected function createStatement(DriverStatement $wrappedStatement, Connection $connection) : Statement
+    protected function createStatement(DriverStatement $wrappedStatement, Connection $connection): Statement
     {
         return new Statement($wrappedStatement, $connection);
     }

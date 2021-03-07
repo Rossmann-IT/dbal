@@ -5,12 +5,9 @@ namespace Doctrine\Tests\DBAL\Functional\Ticket;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\Tests\DbalFunctionalTestCase;
 
-/**
- * @group DBAL-202
- */
 class DBAL202Test extends DbalFunctionalTestCase
 {
-    protected function setUp() : void
+    protected function setUp(): void
     {
         parent::setUp();
 
@@ -29,7 +26,7 @@ class DBAL202Test extends DbalFunctionalTestCase
         }
     }
 
-    public function testStatementRollback() : void
+    public function testStatementRollback(): void
     {
         $stmt = $this->connection->prepare('INSERT INTO DBAL202 VALUES (8)');
         $this->connection->beginTransaction();
@@ -39,7 +36,7 @@ class DBAL202Test extends DbalFunctionalTestCase
         self::assertEquals(0, $this->connection->query('SELECT COUNT(1) FROM DBAL202')->fetchColumn());
     }
 
-    public function testStatementCommit() : void
+    public function testStatementCommit(): void
     {
         $stmt = $this->connection->prepare('INSERT INTO DBAL202 VALUES (8)');
         $this->connection->beginTransaction();

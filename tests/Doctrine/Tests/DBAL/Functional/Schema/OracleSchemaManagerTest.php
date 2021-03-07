@@ -7,6 +7,7 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\BinaryType;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Tests\TestUtil;
+
 use function array_map;
 
 class OracleSchemaManagerTest extends SchemaManagerFunctionalTestCase
@@ -14,7 +15,7 @@ class OracleSchemaManagerTest extends SchemaManagerFunctionalTestCase
     /** @var bool */
     private static $privilegesGranted = false;
 
-    protected function setUp() : void
+    protected function setUp(): void
     {
         parent::setUp();
 
@@ -22,17 +23,17 @@ class OracleSchemaManagerTest extends SchemaManagerFunctionalTestCase
             return;
         }
 
-        if (! isset($GLOBALS['db_username'])) {
+        if (! isset($GLOBALS['db_user'])) {
             self::markTestSkipped('Username must be explicitly specified in connection parameters for this test');
         }
 
-        TestUtil::getTempConnection()
-            ->exec('GRANT ALL PRIVILEGES TO ' . $GLOBALS['db_username']);
+        TestUtil::getPrivilegedConnection()
+            ->exec('GRANT ALL PRIVILEGES TO ' . $GLOBALS['db_user']);
 
         self::$privilegesGranted = true;
     }
 
-    public function testRenameTable() : void
+    public function testRenameTable(): void
     {
         $this->schemaManager->tryMethod('DropTable', 'list_tables_test');
         $this->schemaManager->tryMethod('DropTable', 'list_tables_test_new_name');
@@ -45,7 +46,7 @@ class OracleSchemaManagerTest extends SchemaManagerFunctionalTestCase
         self::assertHasTable($tables, 'list_tables_test_new_name');
     }
 
-    public function testListTableWithBinary() : void
+    public function testListTableWithBinary(): void
     {
         $tableName = 'test_binary_table';
 
@@ -66,11 +67,7 @@ class OracleSchemaManagerTest extends SchemaManagerFunctionalTestCase
         self::assertFalse($table->getColumn('column_binary')->getFixed());
     }
 
-    /**
-     * @group DBAL-472
-     * @group DBAL-1001
-     */
-    public function testAlterTableColumnNotNull() : void
+    public function testAlterTableColumnNotNull(): void
     {
         $comparator = new Schema\Comparator();
         $tableName  = 'list_table_column_notnull';
@@ -102,10 +99,10 @@ class OracleSchemaManagerTest extends SchemaManagerFunctionalTestCase
         self::assertTrue($columns['bar']->getNotnull());
     }
 
-    public function testListDatabases() : void
+    public function testListDatabases(): void
     {
-        // We need the temp connection that has privileges to create a database.
-        $sm = TestUtil::getTempConnection()->getSchemaManager();
+        // We need a privileged connection to create the database.
+        $sm = TestUtil::getPrivilegedConnection()->getSchemaManager();
 
         $sm->dropAndCreateDatabase('c##test_create_database');
 
@@ -115,10 +112,7 @@ class OracleSchemaManagerTest extends SchemaManagerFunctionalTestCase
         self::assertContains('c##test_create_database', $databases);
     }
 
-    /**
-     * @group DBAL-831
-     */
-    public function testListTableDetailsWithDifferentIdentifierQuotingRequirements() : void
+    public function testListTableDetailsWithDifferentIdentifierQuotingRequirements(): void
     {
         $primaryTableName    = '"Primary_Table"';
         $offlinePrimaryTable = new Schema\Table($primaryTableName);
@@ -226,23 +220,20 @@ class OracleSchemaManagerTest extends SchemaManagerFunctionalTestCase
         );
     }
 
-    public function testListTableColumnsSameTableNamesInDifferentSchemas() : void
+    public function testListTableColumnsSameTableNamesInDifferentSchemas(): void
     {
         $table = $this->createListTableColumns();
         $this->schemaManager->dropAndCreateTable($table);
 
         $otherTable = new Table($table->getName());
         $otherTable->addColumn('id', Types::STRING);
-        TestUtil::getTempConnection()->getSchemaManager()->dropAndCreateTable($otherTable);
+        TestUtil::getPrivilegedConnection()->getSchemaManager()->dropAndCreateTable($otherTable);
 
         $columns = $this->schemaManager->listTableColumns($table->getName(), $this->connection->getUsername());
         self::assertCount(7, $columns);
     }
 
-    /**
-     * @group DBAL-1234
-     */
-    public function testListTableIndexesPrimaryKeyConstraintNameDiffersFromIndexName() : void
+    public function testListTableIndexesPrimaryKeyConstraintNameDiffersFromIndexName(): void
     {
         $table = new Table('list_table_indexes_pk_id_test');
         $table->setSchemaConfig($this->schemaManager->createSchemaConfig());
@@ -252,7 +243,10 @@ class OracleSchemaManagerTest extends SchemaManagerFunctionalTestCase
 
         // Adding a primary key on already indexed columns
         // Oracle will reuse the unique index, which cause a constraint name differing from the index name
-        $this->schemaManager->createConstraint(new Schema\Index('id_pk_id_index', ['id'], true, true), 'list_table_indexes_pk_id_test');
+        $this->schemaManager->createConstraint(
+            new Schema\Index('id_pk_id_index', ['id'], true, true),
+            'list_table_indexes_pk_id_test'
+        );
 
         $tableIndexes = $this->schemaManager->listTableIndexes('list_table_indexes_pk_id_test');
 
@@ -262,10 +256,7 @@ class OracleSchemaManagerTest extends SchemaManagerFunctionalTestCase
         self::assertTrue($tableIndexes['primary']->isPrimary());
     }
 
-    /**
-     * @group DBAL-2555
-     */
-    public function testListTableDateTypeColumns() : void
+    public function testListTableDateTypeColumns(): void
     {
         $table = new Table('tbl_date');
         $table->addColumn('col_date', 'date');
@@ -281,8 +272,10 @@ class OracleSchemaManagerTest extends SchemaManagerFunctionalTestCase
         self::assertSame('datetimetz', $columns['col_datetimetz']->getType()->getName());
     }
 
-    public function testCreateAndListSequences() : void
+    public function testCreateAndListSequences(): void
     {
-        self::markTestSkipped("Skipped for uppercase letters are contained in sequences' names. Fix the schema manager in 3.0.");
+        self::markTestSkipped(
+            "Skipped for uppercase letters are contained in sequences' names. Fix the schema manager in 3.0."
+        );
     }
 }

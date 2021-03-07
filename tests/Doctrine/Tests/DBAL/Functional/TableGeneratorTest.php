@@ -8,15 +8,12 @@ use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Tests\DbalFunctionalTestCase;
 use Throwable;
 
-/**
- * @group DDC-450
- */
 class TableGeneratorTest extends DbalFunctionalTestCase
 {
     /** @var TableGenerator */
     private $generator;
 
-    protected function setUp() : void
+    protected function setUp(): void
     {
         parent::setUp();
 
@@ -35,10 +32,11 @@ class TableGeneratorTest extends DbalFunctionalTestCase
             }
         } catch (Throwable $e) {
         }
+
         $this->generator = new TableGenerator($this->connection);
     }
 
-    public function testNextVal() : void
+    public function testNextVal(): void
     {
         $id1 = $this->generator->nextValue('tbl1');
         $id2 = $this->generator->nextValue('tbl1');
@@ -49,7 +47,7 @@ class TableGeneratorTest extends DbalFunctionalTestCase
         self::assertEquals($id1, $id3, 'First ids from different tables are equal.');
     }
 
-    public function testNextValNotAffectedByOuterTransactions() : void
+    public function testNextValNotAffectedByOuterTransactions(): void
     {
         $this->connection->beginTransaction();
         $id1 = $this->generator->nextValue('tbl1');

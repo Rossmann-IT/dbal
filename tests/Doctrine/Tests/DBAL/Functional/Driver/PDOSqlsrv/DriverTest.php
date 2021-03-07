@@ -3,20 +3,21 @@
 namespace Doctrine\Tests\DBAL\Functional\Driver\PDOSqlsrv;
 
 use Doctrine\DBAL\Driver as DriverInterface;
-use Doctrine\DBAL\Driver\Connection;
+use Doctrine\DBAL\Driver\PDOConnection;
 use Doctrine\DBAL\Driver\PDOSqlsrv\Driver;
 use Doctrine\Tests\DBAL\Functional\Driver\AbstractDriverTest;
+use Doctrine\Tests\TestUtil;
 use PDO;
-use function extension_loaded;
 
+use function array_merge;
+
+/**
+ * @requires extension pdo_sqlsrv
+ */
 class DriverTest extends AbstractDriverTest
 {
-    protected function setUp() : void
+    protected function setUp(): void
     {
-        if (! extension_loaded('pdo_sqlsrv')) {
-            $this->markTestSkipped('pdo_sqlsrv is not installed.');
-        }
-
         parent::setUp();
 
         if ($this->connection->getDriver() instanceof Driver) {
@@ -26,18 +27,12 @@ class DriverTest extends AbstractDriverTest
         $this->markTestSkipped('pdo_sqlsrv only test.');
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    protected function createDriver() : DriverInterface
+    protected function createDriver(): DriverInterface
     {
         return new Driver();
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    protected static function getDatabaseNameForConnectionWithoutDatabaseNameParameter() : ?string
+    protected static function getDatabaseNameForConnectionWithoutDatabaseNameParameter(): ?string
     {
         return 'master';
     }
@@ -45,20 +40,23 @@ class DriverTest extends AbstractDriverTest
     /**
      * @param int[]|string[] $driverOptions
      */
-    protected function getConnection(array $driverOptions) : Connection
+    private function getConnection(array $driverOptions): PDOConnection
     {
+        $params = TestUtil::getConnectionParams();
+
+        if (isset($params['driverOptions'])) {
+            $driverOptions = array_merge($params['driverOptions'], $driverOptions);
+        }
+
         return $this->connection->getDriver()->connect(
-            [
-                'host' => $GLOBALS['db_host'],
-                'port' => $GLOBALS['db_port'],
-            ],
-            $GLOBALS['db_username'],
-            $GLOBALS['db_password'],
+            $params,
+            $params['user'] ?? '',
+            $params['password'] ?? '',
             $driverOptions
         );
     }
 
-    public function testConnectionOptions() : void
+    public function testConnectionOptions(): void
     {
         $connection = $this->getConnection(['APP' => 'APP_NAME']);
         $result     = $connection->query('SELECT APP_NAME()')->fetchColumn();
@@ -66,7 +64,7 @@ class DriverTest extends AbstractDriverTest
         self::assertSame('APP_NAME', $result);
     }
 
-    public function testDriverOptions() : void
+    public function testDriverOptions(): void
     {
         $connection = $this->getConnection([PDO::ATTR_CASE => PDO::CASE_UPPER]);
 

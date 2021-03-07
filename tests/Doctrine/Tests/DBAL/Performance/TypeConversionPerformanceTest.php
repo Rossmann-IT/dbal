@@ -17,7 +17,7 @@ class TypeConversionPerformanceTest extends DbalPerformanceTestCase
      *
      * @dataProvider itemCountProvider
      */
-    public function testDateTimeTypeConversionPerformance(int $count) : void
+    public function testDateTimeTypeConversionPerformance(int $count): void
     {
         $value    = new DateTime();
         $type     = Type::getType('datetime');
@@ -26,13 +26,14 @@ class TypeConversionPerformanceTest extends DbalPerformanceTestCase
         for ($i = 0; $i < $count; $i++) {
             $type->convertToDatabaseValue($value, $platform);
         }
+
         $this->stopTiming();
     }
 
     /**
      * @return mixed[][]
      */
-    public static function itemCountProvider() : iterable
+    public static function itemCountProvider(): iterable
     {
         return [
             '100 items' => [100],

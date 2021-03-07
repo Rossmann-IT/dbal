@@ -10,10 +10,7 @@ use PHPUnit\Framework\TestCase;
 
 class ColumnDiffTest extends TestCase
 {
-    /**
-     * @group DBAL-1255
-     */
-    public function testPreservesOldColumnNameQuotation() : void
+    public function testPreservesOldColumnNameQuotation(): void
     {
         $fromColumn = new Column('"foo"', Type::getType(Types::INTEGER));
         $toColumn   = new Column('bar', Type::getType(Types::INTEGER));

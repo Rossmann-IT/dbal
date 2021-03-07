@@ -5,16 +5,14 @@ namespace Doctrine\Tests\DBAL\Functional\Driver\SQLSrv;
 use Doctrine\DBAL\Driver as DriverInterface;
 use Doctrine\DBAL\Driver\SQLSrv\Driver;
 use Doctrine\Tests\DBAL\Functional\Driver\AbstractDriverTest;
-use function extension_loaded;
 
+/**
+ * @requires extension sqlsrv
+ */
 class DriverTest extends AbstractDriverTest
 {
-    protected function setUp() : void
+    protected function setUp(): void
     {
-        if (! extension_loaded('sqlsrv')) {
-            $this->markTestSkipped('sqlsrv is not installed.');
-        }
-
         parent::setUp();
 
         if ($this->connection->getDriver() instanceof Driver) {
@@ -24,18 +22,12 @@ class DriverTest extends AbstractDriverTest
         $this->markTestSkipped('sqlsrv only test.');
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    protected function createDriver() : DriverInterface
+    protected function createDriver(): DriverInterface
     {
         return new Driver();
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    protected static function getDatabaseNameForConnectionWithoutDatabaseNameParameter() : ?string
+    protected static function getDatabaseNameForConnectionWithoutDatabaseNameParameter(): ?string
     {
         return 'master';
     }

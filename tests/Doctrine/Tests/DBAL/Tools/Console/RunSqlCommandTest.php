@@ -6,6 +6,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Tools\Console\Command\RunSqlCommand;
 use Doctrine\DBAL\Tools\Console\ConsoleRunner;
 use LogicException;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Symfony\Component\Console\Application;
@@ -18,10 +19,10 @@ class RunSqlCommandTest extends TestCase
     /** @var RunSqlCommand */
     private $command;
 
-    /** @var Connection */
+    /** @var Connection&MockObject */
     private $connectionMock;
 
-    protected function setUp() : void
+    protected function setUp(): void
     {
         $application = new Application();
         $application->add(new RunSqlCommand());
@@ -39,7 +40,7 @@ class RunSqlCommandTest extends TestCase
         $this->command->setHelperSet($helperSet);
     }
 
-    public function testMissingSqlArgument() : void
+    public function testMissingSqlArgument(): void
     {
         try {
             $this->commandTester->execute([
@@ -52,7 +53,7 @@ class RunSqlCommandTest extends TestCase
         }
     }
 
-    public function testIncorrectDepthOption() : void
+    public function testIncorrectDepthOption(): void
     {
         try {
             $this->commandTester->execute([
@@ -66,7 +67,7 @@ class RunSqlCommandTest extends TestCase
         }
     }
 
-    public function testSelectStatementsPrintsResult() : void
+    public function testSelectStatementsPrintsResult(): void
     {
         $this->expectConnectionFetchAll();
 
@@ -80,7 +81,7 @@ class RunSqlCommandTest extends TestCase
         self::assertRegExp('@array.*1.*@', $this->commandTester->getDisplay());
     }
 
-    public function testUpdateStatementsPrintsAffectedLines() : void
+    public function testUpdateStatementsPrintsAffectedLines(): void
     {
         $this->expectConnectionExecuteUpdate();
 
@@ -93,7 +94,7 @@ class RunSqlCommandTest extends TestCase
         self::assertNotRegExp('@array.*1.*@', $this->commandTester->getDisplay());
     }
 
-    private function expectConnectionExecuteUpdate() : void
+    private function expectConnectionExecuteUpdate(): void
     {
         $this->connectionMock
             ->expects($this->exactly(1))
@@ -103,7 +104,7 @@ class RunSqlCommandTest extends TestCase
             ->method('fetchAll');
     }
 
-    private function expectConnectionFetchAll() : void
+    private function expectConnectionFetchAll(): void
     {
         $this->connectionMock
             ->expects($this->exactly(0))
@@ -113,7 +114,7 @@ class RunSqlCommandTest extends TestCase
             ->method('fetchAll');
     }
 
-    public function testStatementsWithFetchResultPrintsResult() : void
+    public function testStatementsWithFetchResultPrintsResult(): void
     {
         $this->expectConnectionFetchAll();
 

@@ -13,19 +13,27 @@ use PHPUnit\Framework\TestCase;
 
 class SchemaDiffTest extends TestCase
 {
-    public function testSchemaDiffToSql() : void
+    public function testSchemaDiffToSql(): void
     {
         $diff     = $this->createSchemaDiff();
         $platform = $this->createPlatform(true);
 
         $sql = $diff->toSql($platform);
 
-        $expected = ['create_schema', 'drop_orphan_fk', 'alter_seq', 'drop_seq', 'create_seq', 'create_table', 'create_foreign_key', 'drop_table', 'alter_table'];
-
-        self::assertEquals($expected, $sql);
+        self::assertEquals([
+            'create_schema',
+            'drop_orphan_fk',
+            'alter_seq',
+            'drop_seq',
+            'create_seq',
+            'create_table',
+            'create_foreign_key',
+            'drop_table',
+            'alter_table',
+        ], $sql);
     }
 
-    public function testSchemaDiffToSaveSql() : void
+    public function testSchemaDiffToSaveSql(): void
     {
         $diff     = $this->createSchemaDiff();
         $platform = $this->createPlatform(false);
@@ -42,7 +50,6 @@ class SchemaDiffTest extends TestCase
      */
     private function createPlatform(bool $unsafe)
     {
-        /** @var AbstractPlatform|MockObject $platform */
         $platform = $this->createMock(AbstractPlatform::class);
         $platform->expects($this->exactly(1))
             ->method('getCreateSchemaSQL')
@@ -54,6 +61,7 @@ class SchemaDiffTest extends TestCase
                  ->with($this->isInstanceOf(Sequence::class))
                  ->will($this->returnValue('drop_seq'));
         }
+
         $platform->expects($this->exactly(1))
                  ->method('getAlterSequenceSql')
                  ->with($this->isInstanceOf(Sequence::class))
@@ -68,6 +76,7 @@ class SchemaDiffTest extends TestCase
                      ->with($this->isInstanceOf(Table::class))
                      ->will($this->returnValue('drop_table'));
         }
+
         $platform->expects($this->exactly(1))
                  ->method('getCreateTableSql')
                  ->with($this->isInstanceOf(Table::class))
@@ -89,6 +98,7 @@ class SchemaDiffTest extends TestCase
                      )
                      ->will($this->returnValue('drop_orphan_fk'));
         }
+
         $platform->expects($this->exactly(1))
                 ->method('supportsSchemas')
                 ->will($this->returnValue(true));
@@ -102,7 +112,7 @@ class SchemaDiffTest extends TestCase
         return $platform;
     }
 
-    public function createSchemaDiff() : SchemaDiff
+    public function createSchemaDiff(): SchemaDiff
     {
         $diff                              = new SchemaDiff();
         $diff->newNamespaces['foo_ns']     = 'foo_ns';

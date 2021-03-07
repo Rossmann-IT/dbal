@@ -5,12 +5,9 @@ namespace Doctrine\Tests\DBAL\Query\Expression;
 use Doctrine\DBAL\Query\Expression\CompositeExpression;
 use Doctrine\Tests\DbalTestCase;
 
-/**
- * @group DBAL-12
- */
 class CompositeExpressionTest extends DbalTestCase
 {
-    public function testCount() : void
+    public function testCount(): void
     {
         $expr = new CompositeExpression(CompositeExpression::TYPE_OR, ['u.group_id = 1']);
 
@@ -21,7 +18,7 @@ class CompositeExpressionTest extends DbalTestCase
         self::assertCount(2, $expr);
     }
 
-    public function testAdd() : void
+    public function testAdd(): void
     {
         $expr = new CompositeExpression(CompositeExpression::TYPE_OR, ['u.group_id = 1']);
 
@@ -49,7 +46,7 @@ class CompositeExpressionTest extends DbalTestCase
      *
      * @dataProvider provideDataForConvertToString
      */
-    public function testCompositeUsageAndGeneration(string $type, array $parts, string $expects) : void
+    public function testCompositeUsageAndGeneration(string $type, array $parts, string $expects): void
     {
         $expr = new CompositeExpression($type, $parts);
 
@@ -59,7 +56,7 @@ class CompositeExpressionTest extends DbalTestCase
     /**
      * @return mixed[][]
      */
-    public static function provideDataForConvertToString() : iterable
+    public static function provideDataForConvertToString(): iterable
     {
         return [
             [

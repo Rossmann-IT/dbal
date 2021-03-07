@@ -5,11 +5,12 @@ namespace Doctrine\Tests\DBAL\Sharding\SQLAzure;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Sharding\ShardingException;
 use Doctrine\DBAL\Sharding\SQLAzure\SQLAzureShardManager;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 class SQLAzureShardManagerTest extends TestCase
 {
-    public function testNoFederationName() : void
+    public function testNoFederationName(): void
     {
         $this->expectException(ShardingException::class);
         $this->expectExceptionMessage('SQLAzure requires a federation name to be set during sharding configuration.');
@@ -18,7 +19,7 @@ class SQLAzureShardManagerTest extends TestCase
         new SQLAzureShardManager($conn);
     }
 
-    public function testNoDistributionKey() : void
+    public function testNoDistributionKey(): void
     {
         $this->expectException(ShardingException::class);
         $this->expectExceptionMessage('SQLAzure requires a distribution key to be set during sharding configuration.');
@@ -27,7 +28,7 @@ class SQLAzureShardManagerTest extends TestCase
         new SQLAzureShardManager($conn);
     }
 
-    public function testNoDistributionType() : void
+    public function testNoDistributionType(): void
     {
         $this->expectException(ShardingException::class);
 
@@ -35,17 +36,30 @@ class SQLAzureShardManagerTest extends TestCase
         new SQLAzureShardManager($conn);
     }
 
-    public function testGetDefaultDistributionValue() : void
+    public function testGetDefaultDistributionValue(): void
     {
-        $conn = $this->createConnection(['sharding' => ['federationName' => 'abc', 'distributionKey' => 'foo', 'distributionType' => 'integer']]);
+        $conn = $this->createConnection([
+            'sharding' => [
+                'federationName' => 'abc',
+                'distributionKey' => 'foo',
+                'distributionType' => 'integer',
+            ],
+        ]);
 
         $sm = new SQLAzureShardManager($conn);
         self::assertNull($sm->getCurrentDistributionValue());
     }
 
-    public function testSelectGlobalTransactionActive() : void
+    public function testSelectGlobalTransactionActive(): void
     {
-        $conn = $this->createConnection(['sharding' => ['federationName' => 'abc', 'distributionKey' => 'foo', 'distributionType' => 'integer']]);
+        $conn = $this->createConnection([
+            'sharding' => [
+                'federationName' => 'abc',
+                'distributionKey' => 'foo',
+                'distributionType' => 'integer',
+            ],
+        ]);
+
         $conn->expects($this->at(1))->method('isTransactionActive')->will($this->returnValue(true));
 
         $this->expectException(ShardingException::class);
@@ -55,9 +69,16 @@ class SQLAzureShardManagerTest extends TestCase
         $sm->selectGlobal();
     }
 
-    public function testSelectGlobal() : void
+    public function testSelectGlobal(): void
     {
-        $conn = $this->createConnection(['sharding' => ['federationName' => 'abc', 'distributionKey' => 'foo', 'distributionType' => 'integer']]);
+        $conn = $this->createConnection([
+            'sharding' => [
+                'federationName' => 'abc',
+                'distributionKey' => 'foo',
+                'distributionType' => 'integer',
+            ],
+        ]);
+
         $conn->expects($this->at(1))->method('isTransactionActive')->will($this->returnValue(false));
         $conn->expects($this->at(2))->method('exec')->with($this->equalTo('USE FEDERATION ROOT WITH RESET'));
 
@@ -65,9 +86,16 @@ class SQLAzureShardManagerTest extends TestCase
         $sm->selectGlobal();
     }
 
-    public function testSelectShard() : void
+    public function testSelectShard(): void
     {
-        $conn = $this->createConnection(['sharding' => ['federationName' => 'abc', 'distributionKey' => 'foo', 'distributionType' => 'integer']]);
+        $conn = $this->createConnection([
+            'sharding' => [
+                'federationName' => 'abc',
+                'distributionKey' => 'foo',
+                'distributionType' => 'integer',
+            ],
+        ]);
+
         $conn->expects($this->at(1))->method('isTransactionActive')->will($this->returnValue(true));
 
         $this->expectException(ShardingException::class);
@@ -81,8 +109,10 @@ class SQLAzureShardManagerTest extends TestCase
 
     /**
      * @param mixed[] $params
+     *
+     * @return Connection&MockObject
      */
-    private function createConnection(array $params) : Connection
+    private function createConnection(array $params): Connection
     {
         $conn = $this->getMockBuilder(Connection::class)
             ->onlyMethods(['getParams', 'exec', 'isTransactionActive'])
