@@ -339,6 +339,9 @@ class PostgreSqlSchemaManager extends AbstractSchemaManager
             $tableColumn['default']  = null;
             $autoincrement           = true;
         }
+        if ( ! empty($tableColumn['autoincrement'])) {
+            $autoincrement = true;
+        }
 
         if (preg_match("/^['(](.*)[')]::/", $tableColumn['default'], $matches)) {
             $tableColumn['default'] = $matches[1];

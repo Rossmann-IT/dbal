@@ -673,7 +673,7 @@ SQL
      *
      * @return bool True if the given column diff is an unchanged binary type column, false otherwise.
      */
-    private function isUnchangedBinaryColumn(ColumnDiff $columnDiff)
+    protected function isUnchangedBinaryColumn(ColumnDiff $columnDiff)
     {
         $columnType = $columnDiff->column->getType();
 
@@ -1256,7 +1256,7 @@ SQL
     /**
      * Check whether the type of a column is changed in a way that invalidates the default value for the column
      */
-    private function typeChangeBreaksDefaultValue(ColumnDiff $columnDiff): bool
+    protected function typeChangeBreaksDefaultValue(ColumnDiff $columnDiff): bool
     {
         if (! $columnDiff->fromColumn) {
             return $columnDiff->hasChanged('type');
@@ -1275,7 +1275,7 @@ SQL
         return $type instanceof IntegerType || $type instanceof BigIntType;
     }
 
-    private function getOldColumnComment(ColumnDiff $columnDiff): ?string
+    protected function getOldColumnComment(ColumnDiff $columnDiff): ?string
     {
         return $columnDiff->fromColumn ? $this->getColumnComment($columnDiff->fromColumn) : null;
     }
