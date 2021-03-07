@@ -25,11 +25,15 @@ class MySqlSchemaManagerTest extends TestCase
 
     protected function setUp(): void
     {
-        $eventManager  = new EventManager();
-        $driverMock    = $this->createMock(Driver::class);
-        $platform      = $this->createMock(MySqlPlatform::class);
+        $eventManager = new EventManager();
+        $driverMock   = $this->createMock(Driver::class);
+
+        $platform = $this->createMock(MySqlPlatform::class);
+        $platform->method('getListTableForeignKeysSQL')
+            ->willReturn('');
+
         $this->conn    = $this->getMockBuilder(Connection::class)
-            ->onlyMethods(['fetchAll'])
+            ->onlyMethods(['fetchAllAssociative'])
             ->setConstructorArgs([['platform' => $platform], $driverMock, new Configuration(), $eventManager])
             ->getMock();
         $this->manager = new MySqlSchemaManager($this->conn);
@@ -37,7 +41,10 @@ class MySqlSchemaManagerTest extends TestCase
 
     public function testCompositeForeignKeys(): void
     {
-        $this->conn->expects($this->once())->method('fetchAll')->will($this->returnValue($this->getFKDefinition()));
+        $this->conn->expects($this->once())
+            ->method('fetchAllAssociative')
+            ->willReturn($this->getFKDefinition());
+
         $fkeys = $this->manager->listTableForeignKeys('dummy');
         self::assertCount(1, $fkeys, 'Table has to have one foreign key.');
 

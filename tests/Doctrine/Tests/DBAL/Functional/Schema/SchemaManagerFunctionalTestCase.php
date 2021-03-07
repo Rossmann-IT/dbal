@@ -221,7 +221,7 @@ abstract class SchemaManagerFunctionalTestCase extends DbalFunctionalTestCase
         $namespaces = array_map('strtolower', $namespaces);
 
         if (! in_array('test_create_schema', $namespaces)) {
-            $this->connection->executeUpdate(
+            $this->connection->executeStatement(
                 $this->schemaManager->getDatabasePlatform()->getCreateSchemaSQL('test_create_schema')
             );
 

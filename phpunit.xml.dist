@@ -12,7 +12,7 @@
            Example: phpunit -c mysqlconf.xml
 -->
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/schema/9.3.xsd"
          colors="true"
          beStrictAboutOutputDuringTests="true"
          beStrictAboutTodoAnnotatedTests="true"
@@ -44,27 +44,13 @@
 
     <testsuites>
         <testsuite name="Doctrine DBAL Test Suite">
-            <directory>./tests/Doctrine/Tests/DBAL</directory>
-            <exclude>./tests/Doctrine/Tests/DBAL/Performance</exclude>
-        </testsuite>
-        <testsuite name="Doctrine DBAL Performance Test Suite">
-            <directory>./tests/Doctrine/Tests/DBAL/Performance</directory>
+            <directory>tests/Doctrine/Tests/DBAL</directory>
         </testsuite>
     </testsuites>
 
-    <filter>
-        <whitelist>
-            <directory suffix=".php">lib/Doctrine</directory>
-        </whitelist>
-    </filter>
-
-    <listeners>
-        <listener class="Doctrine\Tests\DbalPerformanceTestListener"/>
-    </listeners>
-
-    <groups>
-        <exclude>
-            <group>performance</group>
-        </exclude>
-    </groups>
+  <coverage>
+    <include>
+      <directory suffix=".php">lib/Doctrine</directory>
+    </include>
+  </coverage>
 </phpunit>

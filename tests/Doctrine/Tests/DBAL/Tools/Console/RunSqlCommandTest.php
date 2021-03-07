@@ -31,10 +31,6 @@ class RunSqlCommandTest extends TestCase
         $this->commandTester = new CommandTester($this->command);
 
         $this->connectionMock = $this->createMock(Connection::class);
-        $this->connectionMock->method('fetchAll')
-            ->willReturn([[1]]);
-        $this->connectionMock->method('executeUpdate')
-            ->willReturn(42);
 
         $helperSet = ConsoleRunner::createHelperSet($this->connectionMock);
         $this->command->setHelperSet($helperSet);
@@ -69,7 +65,7 @@ class RunSqlCommandTest extends TestCase
 
     public function testSelectStatementsPrintsResult(): void
     {
-        $this->expectConnectionFetchAll();
+        $this->expectConnectionFetchAllAssociative();
 
         $exitCode = $this->commandTester->execute([
             'command' => $this->command->getName(),
@@ -77,46 +73,50 @@ class RunSqlCommandTest extends TestCase
         ]);
         $this->assertSame(0, $exitCode);
 
-        self::assertRegExp('@int.*1.*@', $this->commandTester->getDisplay());
-        self::assertRegExp('@array.*1.*@', $this->commandTester->getDisplay());
+        self::assertMatchesRegularExpression('@int.*1.*@', $this->commandTester->getDisplay());
+        self::assertMatchesRegularExpression('@array.*1.*@', $this->commandTester->getDisplay());
     }
 
     public function testUpdateStatementsPrintsAffectedLines(): void
     {
-        $this->expectConnectionExecuteUpdate();
+        $this->expectConnectionExecuteStatement();
 
         $this->commandTester->execute([
             'command' => $this->command->getName(),
             'sql' => 'UPDATE foo SET bar = 42',
         ]);
 
-        self::assertRegExp('@int.*42.*@', $this->commandTester->getDisplay());
-        self::assertNotRegExp('@array.*1.*@', $this->commandTester->getDisplay());
+        self::assertMatchesRegularExpression('@int.*42.*@', $this->commandTester->getDisplay());
+        self::assertDoesNotMatchRegularExpression('@array.*1.*@', $this->commandTester->getDisplay());
     }
 
-    private function expectConnectionExecuteUpdate(): void
+    private function expectConnectionExecuteStatement(): void
     {
         $this->connectionMock
-            ->expects($this->exactly(1))
-            ->method('executeUpdate');
+            ->expects($this->once())
+            ->method('executeStatement')
+            ->willReturn(42);
+
         $this->connectionMock
-            ->expects($this->exactly(0))
-            ->method('fetchAll');
+            ->expects($this->never())
+            ->method('fetchAllAssociative');
     }
 
-    private function expectConnectionFetchAll(): void
+    private function expectConnectionFetchAllAssociative(): void
     {
         $this->connectionMock
-            ->expects($this->exactly(0))
-            ->method('executeUpdate');
+            ->expects($this->once())
+            ->method('fetchAllAssociative')
+            ->willReturn([[1]]);
+
         $this->connectionMock
-            ->expects($this->exactly(1))
-            ->method('fetchAll');
+            ->expects($this->never())
+            ->method('executeStatement');
     }
 
     public function testStatementsWithFetchResultPrintsResult(): void
     {
-        $this->expectConnectionFetchAll();
+        $this->expectConnectionFetchAllAssociative();
 
         $this->commandTester->execute([
             'command' => $this->command->getName(),
@@ -124,7 +124,7 @@ class RunSqlCommandTest extends TestCase
             '--force-fetch' => true,
         ]);
 
-        self::assertRegExp('@int.*1.*@', $this->commandTester->getDisplay());
-        self::assertRegExp('@array.*1.*@', $this->commandTester->getDisplay());
+        self::assertMatchesRegularExpression('@int.*1.*@', $this->commandTester->getDisplay());
+        self::assertMatchesRegularExpression('@array.*1.*@', $this->commandTester->getDisplay());
     }
 }

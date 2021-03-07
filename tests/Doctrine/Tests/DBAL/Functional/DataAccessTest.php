@@ -4,12 +4,13 @@ namespace Doctrine\Tests\DBAL\Functional;
 
 use DateTime;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\DBALException;
+use Doctrine\DBAL\Driver\IBMDB2\Driver as IBMDB2Driver;
 use Doctrine\DBAL\Driver\Mysqli\Driver as MySQLiDriver;
 use Doctrine\DBAL\Driver\OCI8\Driver as Oci8Driver;
-use Doctrine\DBAL\Driver\PDOConnection;
-use Doctrine\DBAL\Driver\PDOOracle\Driver as PDOOracleDriver;
+use Doctrine\DBAL\Driver\PDO\Connection as PDOConnection;
+use Doctrine\DBAL\Driver\PDO\OCI\Driver as PDOOCIDriver;
 use Doctrine\DBAL\Driver\SQLSrv\Driver as SQLSrvDriver;
+use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\FetchMode;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Platforms\SqlitePlatform;
@@ -242,7 +243,10 @@ class DataAccessTest extends DbalFunctionalTestCase
         self::assertStringStartsWith($datetimeString, $row['test_datetime']);
     }
 
-    public function testFetchAllWithMissingTypes(): void
+    /**
+     * @dataProvider fetchProvider
+     */
+    public function testFetchAllWithMissingTypes(callable $fetch): void
     {
         if (
             $this->connection->getDriver() instanceof MySQLiDriver ||
@@ -251,13 +255,51 @@ class DataAccessTest extends DbalFunctionalTestCase
             $this->markTestSkipped('mysqli and sqlsrv actually supports this');
         }
 
+        if (
+            $this->connection->getDriver() instanceof IBMDB2Driver
+        ) {
+            $this->markTestSkipped(
+                'ibm_ibm2 may or may not report the error depending on the PHP version and the connection state'
+            );
+        }
+
         $datetimeString = '2010-01-01 10:10:10';
         $datetime       = new DateTime($datetimeString);
         $sql            = 'SELECT test_int, test_datetime FROM fetch_table WHERE test_int = ? AND test_datetime = ?';
 
-        $this->expectException(DBALException::class);
+        $this->expectException(Exception::class);
 
-        $this->connection->fetchAll($sql, [1, $datetime]);
+        $fetch($this->connection, $sql, [1, $datetime]);
+    }
+
+    /**
+     * @return iterable<string,array{0:callable}>
+     */
+    public static function fetchProvider(): iterable
+    {
+        yield 'fetch-all-associative' => [
+            static function (Connection $connection, string $query, array $params): void {
+                $connection->fetchAll($query, $params);
+            },
+        ];
+
+        yield 'fetch-numeric' => [
+            static function (Connection $connection, string $query, array $params): void {
+                $connection->fetchArray($query, $params);
+            },
+        ];
+
+        yield 'fetch-associative' => [
+            static function (Connection $connection, string $query, array $params): void {
+                $connection->fetchAssoc($query, $params);
+            },
+        ];
+
+        yield 'fetch-one' => [
+            static function (Connection $connection, string $query, array $params): void {
+                $connection->fetchColumn($query, $params);
+            },
+        ];
     }
 
     public function testFetchBoth(): void
@@ -315,24 +357,6 @@ class DataAccessTest extends DbalFunctionalTestCase
         self::assertStringStartsWith($datetimeString, $row['test_datetime']);
     }
 
-    public function testFetchAssocWithMissingTypes(): void
-    {
-        if (
-            $this->connection->getDriver() instanceof MySQLiDriver ||
-            $this->connection->getDriver() instanceof SQLSrvDriver
-        ) {
-            $this->markTestSkipped('mysqli and sqlsrv actually supports this');
-        }
-
-        $datetimeString = '2010-01-01 10:10:10';
-        $datetime       = new DateTime($datetimeString);
-        $sql            = 'SELECT test_int, test_datetime FROM fetch_table WHERE test_int = ? AND test_datetime = ?';
-
-        $this->expectException(DBALException::class);
-
-        $this->connection->fetchAssoc($sql, [1, $datetime]);
-    }
-
     public function testFetchArray(): void
     {
         $sql = 'SELECT test_int, test_string FROM fetch_table WHERE test_int = ? AND test_string = ?';
@@ -360,24 +384,6 @@ class DataAccessTest extends DbalFunctionalTestCase
 
         self::assertEquals(1, $row[0]);
         self::assertStringStartsWith($datetimeString, $row[1]);
-    }
-
-    public function testFetchArrayWithMissingTypes(): void
-    {
-        if (
-            $this->connection->getDriver() instanceof MySQLiDriver ||
-            $this->connection->getDriver() instanceof SQLSrvDriver
-        ) {
-            $this->markTestSkipped('mysqli and sqlsrv actually supports this');
-        }
-
-        $datetimeString = '2010-01-01 10:10:10';
-        $datetime       = new DateTime($datetimeString);
-        $sql            = 'SELECT test_int, test_datetime FROM fetch_table WHERE test_int = ? AND test_datetime = ?';
-
-        $this->expectException(DBALException::class);
-
-        $this->connection->fetchArray($sql, [1, $datetime]);
     }
 
     public function testFetchColumn(): void
@@ -411,24 +417,6 @@ class DataAccessTest extends DbalFunctionalTestCase
         self::assertStringStartsWith($datetimeString, $column);
     }
 
-    public function testFetchColumnWithMissingTypes(): void
-    {
-        if (
-            $this->connection->getDriver() instanceof MySQLiDriver ||
-            $this->connection->getDriver() instanceof SQLSrvDriver
-        ) {
-            $this->markTestSkipped('mysqli and sqlsrv actually supports this');
-        }
-
-        $datetimeString = '2010-01-01 10:10:10';
-        $datetime       = new DateTime($datetimeString);
-        $sql            = 'SELECT test_int, test_datetime FROM fetch_table WHERE test_int = ? AND test_datetime = ?';
-
-        $this->expectException(DBALException::class);
-
-        $this->connection->fetchColumn($sql, [1, $datetime], 1);
-    }
-
     public function testExecuteQueryBindDateTimeType(): void
     {
         $sql  = 'SELECT count(*) AS c FROM fetch_table WHERE test_datetime = ?';
@@ -441,12 +429,12 @@ class DataAccessTest extends DbalFunctionalTestCase
         self::assertEquals(1, $stmt->fetchColumn());
     }
 
-    public function testExecuteUpdateBindDateTimeType(): void
+    public function testExecuteStatementBindDateTimeType(): void
     {
         $datetime = new DateTime('2010-02-02 20:20:20');
 
         $sql          = 'INSERT INTO fetch_table (test_int, test_string, test_datetime) VALUES (?, ?, ?)';
-        $affectedRows = $this->connection->executeUpdate($sql, [
+        $affectedRows = $this->connection->executeStatement($sql, [
             1 => 50,
             2 => 'foo',
             3 => $datetime,
@@ -787,7 +775,7 @@ class DataAccessTest extends DbalFunctionalTestCase
     public function testFetchAllStyleColumn(): void
     {
         $sql = 'DELETE FROM fetch_table';
-        $this->connection->executeUpdate($sql);
+        $this->connection->executeStatement($sql);
 
         $this->connection->insert('fetch_table', ['test_int' => 1, 'test_string' => 'foo']);
         $this->connection->insert('fetch_table', ['test_int' => 10, 'test_string' => 'foo']);
@@ -872,7 +860,7 @@ class DataAccessTest extends DbalFunctionalTestCase
 
     public function testFetchColumnNullValue(): void
     {
-        $this->connection->executeUpdate(
+        $this->connection->executeStatement(
             'INSERT INTO fetch_table (test_int, test_string) VALUES (?, ?)',
             [2, 'foo']
         );
@@ -911,7 +899,7 @@ class DataAccessTest extends DbalFunctionalTestCase
             $this->markTestSkipped('Mysqli driver dont support this feature.');
         }
 
-        if (! $driver instanceof PDOOracleDriver) {
+        if (! $driver instanceof PDOOCIDriver) {
             return;
         }
 

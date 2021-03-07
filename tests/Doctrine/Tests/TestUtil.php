@@ -4,10 +4,16 @@ namespace Doctrine\Tests;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
+use Doctrine\DBAL\Platforms\AbstractPlatform;
 use PHPUnit\Framework\Assert;
 
+use function array_keys;
+use function array_map;
+use function array_values;
 use function explode;
 use function extension_loaded;
+use function implode;
+use function is_string;
 use function strlen;
 use function strpos;
 use function substr;
@@ -207,5 +213,25 @@ class TestUtil
     public static function getPrivilegedConnection(): Connection
     {
         return DriverManager::getConnection(self::getPrivilegedConnectionParameters());
+    }
+
+    /**
+     * Generates a query that will return the given rows without the need to create a temporary table.
+     *
+     * @param array<int,array<string,mixed>> $rows
+     */
+    public static function generateResultSetQuery(array $rows, AbstractPlatform $platform): string
+    {
+        return implode(' UNION ALL ', array_map(static function (array $row) use ($platform): string {
+            return $platform->getDummySelectSQL(
+                implode(', ', array_map(static function (string $column, $value) use ($platform): string {
+                    if (is_string($value)) {
+                        $value = $platform->quoteStringLiteral($value);
+                    }
+
+                    return $value . ' ' . $platform->quoteIdentifier($column);
+                }, array_keys($row), array_values($row)))
+            );
+        }, $rows));
     }
 }

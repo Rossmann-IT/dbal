@@ -2,17 +2,17 @@
 
 namespace Doctrine\Tests\DBAL\Functional\Driver\OCI8;
 
+use Doctrine\DBAL\Driver\OCI8\Connection;
 use Doctrine\DBAL\Driver\OCI8\Driver;
-use Doctrine\DBAL\Driver\OCI8\OCI8Connection;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\Tests\DbalFunctionalTestCase;
 
 /**
  * @requires extension oci8
  */
-class OCI8ConnectionTest extends DbalFunctionalTestCase
+class ConnectionTest extends DbalFunctionalTestCase
 {
-    /** @var OCI8Connection */
+    /** @var Connection */
     protected $driverConnection;
 
     protected function setUp(): void
@@ -37,7 +37,7 @@ class OCI8ConnectionTest extends DbalFunctionalTestCase
 
         $schemaManager->dropAndCreateTable($table);
 
-        $this->connection->executeUpdate('INSERT INTO DBAL2595 (foo) VALUES (1)');
+        $this->connection->executeStatement('INSERT INTO DBAL2595 (foo) VALUES (1)');
 
         $schema   = $this->connection->getDatabase();
         $sequence = $platform->getIdentitySequenceName($schema . '.DBAL2595', 'id');

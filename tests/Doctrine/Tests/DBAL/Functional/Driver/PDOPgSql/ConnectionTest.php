@@ -1,6 +1,6 @@
 <?php
 
-namespace Doctrine\Tests\DBAL\Functional\Driver;
+namespace Doctrine\Tests\DBAL\Functional\Driver\PDOPgSql;
 
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\FetchMode;
@@ -10,7 +10,7 @@ use Doctrine\Tests\DbalFunctionalTestCase;
 /**
  * @requires extension pdo_pgsql
  */
-class PDOPgsqlConnectionTest extends DbalFunctionalTestCase
+class ConnectionTest extends DbalFunctionalTestCase
 {
     protected function setUp(): void
     {

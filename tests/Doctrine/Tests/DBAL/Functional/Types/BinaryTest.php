@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Doctrine\Tests\DBAL\Functional\Types;
 
-use Doctrine\DBAL\Driver\IBMDB2\DB2Driver;
-use Doctrine\DBAL\Driver\PDOOracle\Driver as PDOOracleDriver;
+use Doctrine\DBAL\Driver\IBMDB2\Driver;
+use Doctrine\DBAL\Driver\PDO\OCI\Driver as PDOOCIDriver;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\Tests\DbalFunctionalTestCase;
@@ -21,7 +21,7 @@ class BinaryTest extends DbalFunctionalTestCase
     {
         parent::setUp();
 
-        if ($this->connection->getDriver() instanceof PDOOracleDriver) {
+        if ($this->connection->getDriver() instanceof PDOOCIDriver) {
             $this->markTestSkipped('PDO_OCI doesn\'t support binding binary values');
         }
 
@@ -46,7 +46,7 @@ class BinaryTest extends DbalFunctionalTestCase
         $value2 = random_bytes(64);
 
         /** @see https://bugs.php.net/bug.php?id=76322 */
-        if ($this->connection->getDriver() instanceof DB2Driver) {
+        if ($this->connection->getDriver() instanceof Driver) {
             $value1 = str_replace("\x00", "\xFF", $value1);
             $value2 = str_replace("\x00", "\xFF", $value2);
         }

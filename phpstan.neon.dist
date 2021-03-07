@@ -5,6 +5,10 @@ parameters:
     reportUnmatchedIgnoredErrors: false
     checkMissingIterableValueType: false
     checkGenericClassInNonGenericObjectType: false
+    earlyTerminatingMethodCalls:
+        Doctrine\DBAL\Connection:
+            - handleDriverException
+            - handleExceptionDuringQuery
     ignoreErrors:
         # extension not available
         - '~^(Used )?(Function|Constant) sasql_\S+ not found\.\z~i'
@@ -16,11 +20,6 @@ parameters:
         - '~^Property Doctrine\\DBAL\\Schema\\Table::\$_primaryKeyName \(string\) does not accept (default value of type )?false\.\z~'
         - '~^Property Doctrine\\DBAL\\Schema\\Schema::\$_schemaConfig \(Doctrine\\DBAL\\Schema\\SchemaConfig\) does not accept default value of type false\.\z~'
         - '~^Return type \(int\|false\) of method Doctrine\\DBAL\\Driver\\OCI8\\OCI8Connection\:\:lastInsertId\(\) should be compatible with return type \(string\) of method Doctrine\\DBAL\\Driver\\Connection::lastInsertId\(\)~'
-
-        # https://github.com/phpstan/phpstan/issues/3527
-        -
-            message: '~^Call to private method sqliteCreateFunction\(\) of parent class PDO\.$~'
-            path: %currentWorkingDirectory%/lib/Doctrine/DBAL/Driver/PDOSqlite/Driver.php
 
         # legacy variadic-like signature
         # TODO: remove in 3.0.0

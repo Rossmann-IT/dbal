@@ -2,8 +2,8 @@
 
 namespace Doctrine\Tests\DBAL\Functional\Schema;
 
-use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Driver\Connection;
+use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Schema;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\BlobType;
@@ -19,7 +19,7 @@ class SqliteSchemaManagerTest extends SchemaManagerFunctionalTestCase
      */
     public function testListDatabases(): void
     {
-        $this->expectException(DBALException::class);
+        $this->expectException(Exception::class);
 
         $this->schemaManager->listDatabases();
     }
@@ -31,7 +31,7 @@ class SqliteSchemaManagerTest extends SchemaManagerFunctionalTestCase
         $this->schemaManager->createDatabase($path);
         self::assertFileExists($path);
         $this->schemaManager->dropDatabase($path);
-        self::assertFileNotExists($path);
+        self::assertFileDoesNotExist($path);
     }
 
     public function testDropsDatabaseWithActiveConnections(): void
@@ -53,7 +53,7 @@ class SqliteSchemaManagerTest extends SchemaManagerFunctionalTestCase
 
         $this->schemaManager->dropDatabase('test_drop_database');
 
-        self::assertFileNotExists('test_drop_database');
+        self::assertFileDoesNotExist('test_drop_database');
 
         unset($connection);
     }

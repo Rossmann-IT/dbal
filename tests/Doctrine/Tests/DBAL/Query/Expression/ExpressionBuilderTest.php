@@ -26,7 +26,19 @@ class ExpressionBuilderTest extends DbalTestCase
     /**
      * @param string[]|CompositeExpression[] $parts
      *
-     * @dataProvider provideDataForAndX
+     * @dataProvider provideDataForAnd
+     */
+    public function testAnd(array $parts, string $expected): void
+    {
+        $composite = $this->expr->and(...$parts);
+
+        self::assertEquals($expected, (string) $composite);
+    }
+
+    /**
+     * @param string[]|CompositeExpression[] $parts
+     *
+     * @dataProvider provideDataForAnd
      */
     public function testAndX(array $parts, string $expected): void
     {
@@ -42,7 +54,7 @@ class ExpressionBuilderTest extends DbalTestCase
     /**
      * @return mixed[][]
      */
-    public static function provideDataForAndX(): iterable
+    public static function provideDataForAnd(): iterable
     {
         return [
             [
@@ -64,9 +76,9 @@ class ExpressionBuilderTest extends DbalTestCase
             [
                 [
                     'u.user = 1',
-                    new CompositeExpression(
-                        CompositeExpression::TYPE_OR,
-                        ['u.group_id = 1', 'u.group_id = 2']
+                    CompositeExpression::or(
+                        'u.group_id = 1',
+                        'u.group_id = 2'
                     ),
                 ],
                 '(u.user = 1) AND ((u.group_id = 1) OR (u.group_id = 2))',
@@ -74,9 +86,9 @@ class ExpressionBuilderTest extends DbalTestCase
             [
                 [
                     'u.group_id = 1',
-                    new CompositeExpression(
-                        CompositeExpression::TYPE_AND,
-                        ['u.user = 1', 'u.group_id = 2']
+                    CompositeExpression::and(
+                        'u.user = 1',
+                        'u.group_id = 2'
                     ),
                 ],
                 '(u.group_id = 1) AND ((u.user = 1) AND (u.group_id = 2))',
@@ -87,7 +99,19 @@ class ExpressionBuilderTest extends DbalTestCase
     /**
      * @param string[]|CompositeExpression[] $parts
      *
-     * @dataProvider provideDataForOrX
+     * @dataProvider provideDataForOr
+     */
+    public function testOr(array $parts, string $expected): void
+    {
+        $composite = $this->expr->or(...$parts);
+
+        self::assertEquals($expected, (string) $composite);
+    }
+
+    /**
+     * @param string[]|CompositeExpression[] $parts
+     *
+     * @dataProvider provideDataForOr
      */
     public function testOrX(array $parts, string $expected): void
     {
@@ -103,7 +127,7 @@ class ExpressionBuilderTest extends DbalTestCase
     /**
      * @return mixed[][]
      */
-    public static function provideDataForOrX(): iterable
+    public static function provideDataForOr(): iterable
     {
         return [
             [
@@ -125,9 +149,9 @@ class ExpressionBuilderTest extends DbalTestCase
             [
                 [
                     'u.user = 1',
-                    new CompositeExpression(
-                        CompositeExpression::TYPE_OR,
-                        ['u.group_id = 1', 'u.group_id = 2']
+                    CompositeExpression::or(
+                        'u.group_id = 1',
+                        'u.group_id = 2'
                     ),
                 ],
                 '(u.user = 1) OR ((u.group_id = 1) OR (u.group_id = 2))',
@@ -135,9 +159,9 @@ class ExpressionBuilderTest extends DbalTestCase
             [
                 [
                     'u.group_id = 1',
-                    new CompositeExpression(
-                        CompositeExpression::TYPE_AND,
-                        ['u.user = 1', 'u.group_id = 2']
+                    CompositeExpression::and(
+                        'u.user = 1',
+                        'u.group_id = 2'
                     ),
                 ],
                 '(u.group_id = 1) OR ((u.user = 1) AND (u.group_id = 2))',

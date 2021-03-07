@@ -41,7 +41,7 @@ the query until there are no more rows:
 
     <?php
 
-    while ($row = $stmt->fetch()) {
+    while (($row = $stmt->fetchAssociative()) !== false) {
         echo $row['headline'];
     }
 
@@ -142,7 +142,7 @@ use prepared statements:
     SQL query, bind the given params with their binding types and execute the query.
     This method returns the executed prepared statement for iteration and is useful
     for SELECT statements.
--   ``executeUpdate($sql, $params, $types)`` - Create a prepared statement for the passed
+-   ``executeStatement($sql, $params, $types)`` - Create a prepared statement for the passed
     SQL query, bind the given params with their binding types and execute the query.
     This method returns the number of affected rows by the executed query and is useful
     for UPDATE, DELETE and INSERT statements.
@@ -170,7 +170,7 @@ of this query using the fetch API of a statement:
 The fetch API of a prepared statement obviously works only for ``SELECT`` queries.
 
 If you find it tedious to write all the prepared statement code you can alternatively use
-the ``Doctrine\DBAL\Connection#executeQuery()`` and ``Doctrine\DBAL\Connection#executeUpdate()``
+the ``Doctrine\DBAL\Connection#executeQuery()`` and ``Doctrine\DBAL\Connection#executeStatement()``
 methods. See the API section below on details how to use them.
 
 Additionally there are lots of convenience methods for data-retrieval and manipulation
@@ -208,7 +208,7 @@ which means this code works independent of the database you are using.
 .. note::
 
     Be aware this type conversion only works with ``Statement#bindValue()``,
-    ``Connection#executeQuery()`` and ``Connection#executeUpdate()``. It
+    ``Connection#executeQuery()`` and ``Connection#executeStatement()``. It
     is not supported to pass a doctrine type name to ``Statement#bindParam()``,
     because this would not work with binding by reference.
 
@@ -286,7 +286,7 @@ This is much more complicated and is ugly to write generically.
 .. note::
 
     The parameter list support only works with ``Doctrine\DBAL\Connection::executeQuery()``
-    and ``Doctrine\DBAL\Connection::executeUpdate()``, NOT with the binding methods of
+    and ``Doctrine\DBAL\Connection::executeStatement()``, NOT with the binding methods of
     a prepared statement.
 
 API
@@ -308,7 +308,7 @@ Prepare a given SQL statement and return the
     <?php
     $statement = $conn->prepare('SELECT * FROM user');
     $statement->execute();
-    $users = $statement->fetchAll();
+    $users = $statement->fetchAllAssociative();
 
     /*
     array(
@@ -319,7 +319,7 @@ Prepare a given SQL statement and return the
     )
     */
 
-executeUpdate()
+executeStatement()
 ~~~~~~~~~~~~~~~
 
 Executes a prepared statement with the given SQL and parameters and
@@ -328,7 +328,7 @@ returns the affected rows count:
 .. code-block:: php
 
     <?php
-    $count = $conn->executeUpdate('UPDATE user SET username = ? WHERE id = ?', array('jwage', 1));
+    $count = $conn->executeStatement('UPDATE user SET username = ? WHERE id = ?', array('jwage', 1));
     echo $count; // 1
 
 The ``$types`` variable contains the PDO or Doctrine Type constants
@@ -346,7 +346,7 @@ parameters to the execute method, then returning the statement:
 
     <?php
     $statement = $conn->executeQuery('SELECT * FROM user WHERE username = ?', array('jwage'));
-    $user = $statement->fetch();
+    $user = $statement->fetchAssociative();
 
     /*
     array(
@@ -360,15 +360,15 @@ to perform necessary type conversions between actual input
 parameters and expected database values. See the
 :ref:`Types <mappingMatrix>` section for more information.
 
-fetchAll()
-~~~~~~~~~~
+fetchAllAssociative()
+~~~~~~~~~~~~~~~~~~~~~
 
 Execute the query and fetch all results into an array:
 
 .. code-block:: php
 
     <?php
-    $users = $conn->fetchAll('SELECT * FROM user');
+    $users = $conn->fetchAllAssociative('SELECT * FROM user');
 
     /*
     array(
@@ -379,15 +379,15 @@ Execute the query and fetch all results into an array:
     )
     */
 
-fetchArray()
-~~~~~~~~~~~~
+fetchNumeric()
+~~~~~~~~~~~~~~
 
 Numeric index retrieval of first result row of the given query:
 
 .. code-block:: php
 
     <?php
-    $user = $conn->fetchArray('SELECT * FROM user WHERE username = ?', array('jwage'));
+    $user = $conn->fetchNumeric('SELECT * FROM user WHERE username = ?', array('jwage'));
 
     /*
     array(
@@ -396,26 +396,26 @@ Numeric index retrieval of first result row of the given query:
     )
     */
 
-fetchColumn()
-~~~~~~~~~~~~~
+fetchOne()
+~~~~~~~~~~
 
-Retrieve only the given column of the first result row.
+Retrieve only the value of the first column of the first result row.
 
 .. code-block:: php
 
     <?php
-    $username = $conn->fetchColumn('SELECT username FROM user WHERE id = ?', array(1), 0);
+    $username = $conn->fetchOne('SELECT username FROM user WHERE id = ?', array(1), 0);
     echo $username; // jwage
 
-fetchAssoc()
-~~~~~~~~~~~~
+fetchAssociative()
+~~~~~~~~~~~~~~~~~~
 
-Retrieve assoc row of the first result row.
+Retrieve associative array of the first result row.
 
 .. code-block:: php
 
     <?php
-    $user = $conn->fetchAssoc('SELECT * FROM user WHERE username = ?', array('jwage'));
+    $user = $conn->fetchAssociative('SELECT * FROM user WHERE username = ?', array('jwage'));
     /*
     array(
       'username' => 'jwage',

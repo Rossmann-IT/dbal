@@ -109,7 +109,7 @@ class ResultCacheTest extends DbalFunctionalTestCase
             'SELECT * FROM caching ORDER BY test_int ASC',
             [],
             [],
-            new QueryCacheProfile(10, 'testcachekey')
+            new QueryCacheProfile(0, 'testcachekey')
         );
 
         $data = $this->hydrateStmt($stmt, FetchMode::ASSOCIATIVE);
@@ -120,7 +120,7 @@ class ResultCacheTest extends DbalFunctionalTestCase
             'SELECT * FROM caching ORDER BY test_int ASC',
             [],
             [],
-            new QueryCacheProfile(10, 'testcachekey')
+            new QueryCacheProfile(0, 'testcachekey')
         );
 
         $data = $this->hydrateStmt($stmt, FetchMode::NUMERIC);
@@ -141,7 +141,7 @@ class ResultCacheTest extends DbalFunctionalTestCase
             'SELECT * FROM caching ORDER BY test_int ASC',
             [],
             [],
-            new QueryCacheProfile(10, 'testcachekey')
+            new QueryCacheProfile(0, 'testcachekey')
         );
 
         $data = $this->hydrateStmt($stmt, $fetchMode);
@@ -150,7 +150,7 @@ class ResultCacheTest extends DbalFunctionalTestCase
             'SELECT * FROM caching ORDER BY test_int ASC',
             [],
             [],
-            new QueryCacheProfile(10, 'testcachekey')
+            new QueryCacheProfile(0, 'testcachekey')
         );
 
         $dataIterator = $this->hydrateStmtIterator($stmt, $fetchMode);
@@ -158,13 +158,13 @@ class ResultCacheTest extends DbalFunctionalTestCase
         self::assertEquals($data, $dataIterator);
     }
 
-    public function testDontCloseNoCache(): void
+    public function testFetchAndFinishSavesCache(): void
     {
         $stmt = $this->connection->executeQuery(
             'SELECT * FROM caching ORDER BY test_int ASC',
             [],
             [],
-            new QueryCacheProfile(10, 'testcachekey')
+            new QueryCacheProfile(0, 'testcachekey')
         );
 
         $data = [];
@@ -177,7 +177,7 @@ class ResultCacheTest extends DbalFunctionalTestCase
             'SELECT * FROM caching ORDER BY test_int ASC',
             [],
             [],
-            new QueryCacheProfile(10, 'testcachekey')
+            new QueryCacheProfile(0, 'testcachekey')
         );
 
         $data = [];
@@ -186,7 +186,7 @@ class ResultCacheTest extends DbalFunctionalTestCase
             $data[] = $row;
         }
 
-        self::assertCount(2, $this->sqlLogger->queries);
+        self::assertCount(1, $this->sqlLogger->queries);
     }
 
     public function testDontFinishNoCache(): void
@@ -195,17 +195,16 @@ class ResultCacheTest extends DbalFunctionalTestCase
             'SELECT * FROM caching ORDER BY test_int ASC',
             [],
             [],
-            new QueryCacheProfile(10, 'testcachekey')
+            new QueryCacheProfile(0, 'testcachekey')
         );
 
         $stmt->fetch(FetchMode::ASSOCIATIVE);
-        $stmt->closeCursor();
 
         $stmt = $this->connection->executeQuery(
             'SELECT * FROM caching ORDER BY test_int ASC',
             [],
             [],
-            new QueryCacheProfile(10, 'testcachekey')
+            new QueryCacheProfile(0, 'testcachekey')
         );
 
         $this->hydrateStmt($stmt, FetchMode::NUMERIC);
@@ -213,7 +212,7 @@ class ResultCacheTest extends DbalFunctionalTestCase
         self::assertCount(2, $this->sqlLogger->queries);
     }
 
-    public function testFetchAllAndFinishSavesCache(): void
+    public function testFetchAllSavesCache(): void
     {
         $layerCache = new ArrayCache();
 
@@ -221,11 +220,9 @@ class ResultCacheTest extends DbalFunctionalTestCase
             'SELECT * FROM caching WHERE test_int > 500',
             [],
             [],
-            new QueryCacheProfile(10, 'testcachekey', $layerCache)
+            new QueryCacheProfile(0, 'testcachekey', $layerCache)
         );
-
         $stmt->fetchAll();
-        $stmt->closeCursor();
 
         self::assertCount(1, $layerCache->fetch('testcachekey'));
     }
@@ -239,7 +236,6 @@ class ResultCacheTest extends DbalFunctionalTestCase
 
         $stmt = $this->connection->executeCacheQuery($query, [], [], $qcp);
         $stmt->fetchAll(FetchMode::COLUMN);
-        $stmt->closeCursor();
 
         $stmt = $this->connection->executeCacheQuery($query, [], [], $qcp);
 
@@ -255,7 +251,7 @@ class ResultCacheTest extends DbalFunctionalTestCase
             'SELECT * FROM caching ORDER BY test_int ASC',
             [],
             [],
-            new QueryCacheProfile(10, 'testcachekey')
+            new QueryCacheProfile(0, 'testcachekey')
         );
 
         self::assertEquals(2, $stmt->columnCount());
@@ -266,7 +262,7 @@ class ResultCacheTest extends DbalFunctionalTestCase
             'SELECT * FROM caching ORDER BY test_int ASC',
             [],
             [],
-            new QueryCacheProfile(10, 'testcachekey')
+            new QueryCacheProfile(0, 'testcachekey')
         );
 
         self::assertEquals(2, $stmt->columnCount());
@@ -330,11 +326,10 @@ class ResultCacheTest extends DbalFunctionalTestCase
     private function hydrateStmt(ResultStatement $stmt, int $fetchMode = FetchMode::ASSOCIATIVE): array
     {
         $data = [];
-        while ($row = $stmt->fetch($fetchMode)) {
+
+        foreach ($stmt->fetchAll($fetchMode) as $row) {
             $data[] = is_array($row) ? array_change_key_case($row, CASE_LOWER) : $row;
         }
-
-        $stmt->closeCursor();
 
         return $data;
     }
@@ -349,8 +344,6 @@ class ResultCacheTest extends DbalFunctionalTestCase
         foreach ($stmt as $row) {
             $data[] = is_array($row) ? array_change_key_case($row, CASE_LOWER) : $row;
         }
-
-        $stmt->closeCursor();
 
         return $data;
     }

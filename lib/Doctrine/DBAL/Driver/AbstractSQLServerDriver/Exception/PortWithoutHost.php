@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Doctrine\DBAL\Driver\AbstractSQLServerDriver;
+namespace Doctrine\DBAL\Driver\AbstractSQLServerDriver\Exception;
 
 use Doctrine\DBAL\Driver\AbstractDriverException;
 

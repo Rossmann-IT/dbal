@@ -9,18 +9,18 @@ class CompositeExpressionTest extends DbalTestCase
 {
     public function testCount(): void
     {
-        $expr = new CompositeExpression(CompositeExpression::TYPE_OR, ['u.group_id = 1']);
+        $expr = CompositeExpression::or('u.group_id = 1');
 
         self::assertCount(1, $expr);
 
-        $expr->add('u.group_id = 2');
+        $expr = $expr->with('u.group_id = 2');
 
         self::assertCount(2, $expr);
     }
 
     public function testAdd(): void
     {
-        $expr = new CompositeExpression(CompositeExpression::TYPE_OR, ['u.group_id = 1']);
+        $expr = CompositeExpression::or('u.group_id = 1');
 
         self::assertCount(1, $expr);
 
@@ -28,7 +28,7 @@ class CompositeExpressionTest extends DbalTestCase
 
         self::assertCount(1, $expr);
 
-        $expr->add(new CompositeExpression(CompositeExpression::TYPE_OR, ['u.user_id = 1']));
+        $expr->add(CompositeExpression::or('u.user_id = 1'));
 
         self::assertCount(2, $expr);
 
@@ -37,6 +37,26 @@ class CompositeExpressionTest extends DbalTestCase
         self::assertCount(2, $expr);
 
         $expr->add('u.user_id = 1');
+
+        self::assertCount(3, $expr);
+    }
+
+    public function testWith(): void
+    {
+        $expr = CompositeExpression::or('u.group_id = 1');
+
+        self::assertCount(1, $expr);
+
+        // test immutability
+        $expr->with(CompositeExpression::or('u.user_id = 1'));
+
+        self::assertCount(1, $expr);
+
+        $expr = $expr->with(CompositeExpression::or('u.user_id = 1'));
+
+        self::assertCount(2, $expr);
+
+        $expr = $expr->with('u.user_id = 1');
 
         self::assertCount(3, $expr);
     }
@@ -83,9 +103,9 @@ class CompositeExpressionTest extends DbalTestCase
                 CompositeExpression::TYPE_AND,
                 [
                     'u.user = 1',
-                    new CompositeExpression(
-                        CompositeExpression::TYPE_OR,
-                        ['u.group_id = 1', 'u.group_id = 2']
+                    CompositeExpression::or(
+                        'u.group_id = 1',
+                        'u.group_id = 2'
                     ),
                 ],
                 '(u.user = 1) AND ((u.group_id = 1) OR (u.group_id = 2))',
@@ -94,9 +114,9 @@ class CompositeExpressionTest extends DbalTestCase
                 CompositeExpression::TYPE_OR,
                 [
                     'u.group_id = 1',
-                    new CompositeExpression(
-                        CompositeExpression::TYPE_AND,
-                        ['u.user = 1', 'u.group_id = 2']
+                    CompositeExpression::and(
+                        'u.user = 1',
+                        'u.group_id = 2'
                     ),
                 ],
                 '(u.group_id = 1) OR ((u.user = 1) AND (u.group_id = 2))',

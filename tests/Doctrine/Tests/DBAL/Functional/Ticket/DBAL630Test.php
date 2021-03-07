@@ -2,8 +2,8 @@
 
 namespace Doctrine\Tests\DBAL\Functional\Ticket;
 
-use Doctrine\DBAL\DBALException;
-use Doctrine\DBAL\Driver\PDOConnection;
+use Doctrine\DBAL\Driver\PDO\Connection;
+use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\Tests\DbalFunctionalTestCase;
 use PDO;
@@ -28,7 +28,7 @@ class DBAL630Test extends DbalFunctionalTestCase
         try {
             $this->connection->exec('CREATE TABLE dbal630 (id SERIAL, bool_col BOOLEAN NOT NULL);');
             $this->connection->exec('CREATE TABLE dbal630_allow_nulls (id SERIAL, bool_col BOOLEAN);');
-        } catch (DBALException $e) {
+        } catch (Exception $e) {
         }
 
         $this->running = true;
@@ -45,7 +45,7 @@ class DBAL630Test extends DbalFunctionalTestCase
 
     public function testBooleanConversionSqlLiteral(): void
     {
-        $this->connection->executeUpdate('INSERT INTO dbal630 (bool_col) VALUES(false)');
+        $this->connection->executeStatement('INSERT INTO dbal630 (bool_col) VALUES(false)');
         $id = $this->connection->lastInsertId('dbal630_id_seq');
         self::assertNotEmpty($id);
 
@@ -56,7 +56,7 @@ class DBAL630Test extends DbalFunctionalTestCase
 
     public function testBooleanConversionBoolParamRealPrepares(): void
     {
-        $this->connection->executeUpdate(
+        $this->connection->executeStatement(
             'INSERT INTO dbal630 (bool_col) VALUES(?)',
             ['false'],
             [ParameterType::BOOLEAN]
@@ -170,10 +170,10 @@ class DBAL630Test extends DbalFunctionalTestCase
         ];
     }
 
-    private function getWrappedConnection(): PDOConnection
+    private function getWrappedConnection(): Connection
     {
         $connection = $this->connection->getWrappedConnection();
-        self::assertInstanceOf(PDOConnection::class, $connection);
+        self::assertInstanceOf(Connection::class, $connection);
 
         return $connection;
     }
