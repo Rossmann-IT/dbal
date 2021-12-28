@@ -43,6 +43,16 @@ class PostgreSQL130Platform extends PostgreSQL100Platform
     }
 
     /**
+     * Returns the SQL specific for the platform to get the current timestamp
+     *
+     * @return string
+     */
+    public function getCurrentTimestampSQL()
+    {
+        return "timezone('UTC'::text, CURRENT_TIMESTAMP)";
+    }
+
+    /**
      * {@inheritDoc}
      */
     public function getIntegerTypeDeclarationSQL(array $column)
