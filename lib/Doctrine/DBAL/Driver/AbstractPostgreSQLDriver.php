@@ -17,6 +17,7 @@ use Doctrine\DBAL\Exception\SyntaxErrorException;
 use Doctrine\DBAL\Exception\TableExistsException;
 use Doctrine\DBAL\Exception\TableNotFoundException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use Doctrine\DBAL\Platforms\PostgreSQL130Platform;
 use Doctrine\DBAL\Platforms\PostgreSQL100Platform;
 use Doctrine\DBAL\Platforms\PostgreSQL91Platform;
 use Doctrine\DBAL\Platforms\PostgreSQL92Platform;
@@ -120,6 +121,8 @@ abstract class AbstractPostgreSQLDriver implements Driver, ExceptionConverterDri
         $version      = $majorVersion . '.' . $minorVersion . '.' . $patchVersion;
 
         switch (true) {
+            case version_compare($version, '13.0', '>='):
+                return new PostgreSQL130Platform();
             case version_compare($version, '10.0', '>='):
                 return new PostgreSQL100Platform();
             case version_compare($version, '9.4', '>='):
