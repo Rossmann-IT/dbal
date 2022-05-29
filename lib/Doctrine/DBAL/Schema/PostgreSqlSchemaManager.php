@@ -339,6 +339,9 @@ class PostgreSqlSchemaManager extends AbstractSchemaManager
             $tableColumn['default']  = null;
             $autoincrement           = true;
         }
+        if ( ! empty($tableColumn['autoincrement'])) {
+            $autoincrement = true;
+        }
 
         if (preg_match("/^['(](.*)[')]::/", $tableColumn['default'], $matches)) {
             $tableColumn['default'] = $matches[1];
@@ -455,7 +458,11 @@ class PostgreSqlSchemaManager extends AbstractSchemaManager
                 break;
         }
 
-        if ($tableColumn['default'] && preg_match("('([^']+)'::)", $tableColumn['default'], $match)) {
+        // The default value for timestamp columns can be "timezone('UTC'::text, CURRENT_TIMESTAMP)"
+        // and must remain untouched. Other columns get their type casting removed.
+        if ($dbType !== 'timestamp' && $tableColumn['default'] 
+            && preg_match("('([^']+)'::)", $tableColumn['default'], $match)
+        ) {
             $tableColumn['default'] = $match[1];
         }
 
