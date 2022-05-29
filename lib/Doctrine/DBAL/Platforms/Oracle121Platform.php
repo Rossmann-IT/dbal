@@ -297,7 +297,6 @@ class Oracle121Platform extends OraclePlatform {
         $columnConstraintsTableName = "user_constraints";
         $expressionsTableName = "user_ind_expressions";
         $indexColumnsOwnerCondition = '';
-        $columnConstraintsOwnerCondition = '';
 
         if (null !== $currentDatabase && '/' !== $currentDatabase) {
             $currentDatabase = $this->normalizeIdentifier($currentDatabase);
@@ -306,7 +305,6 @@ class Oracle121Platform extends OraclePlatform {
             $columnConstraintsTableName = "all_constraints";
             $expressionsTableName = "all_ind_expressions";
             $indexColumnsOwnerCondition = "WHERE index_columns.index_owner = " . $currentDatabase;
-            $columnConstraintsOwnerCondition = " AND constraints.owner = " . $currentDatabase;
         }
 
         $sql = "SELECT index_columns.table_name as table_name, index_columns.index_name AS name,
@@ -336,10 +334,11 @@ class Oracle121Platform extends OraclePlatform {
             LEFT JOIN $expressionsTableName index_expressions
               ON (index_expressions.table_name = index_columns.table_name 
                   AND index_expressions.index_name = index_columns.index_name
-                  AND index_columns.column_position = index_expressions.column_position)
+                  AND index_expressions.column_position = index_columns.column_position
+                  AND index_expressions.index_owner = index_columns.index_owner)
             LEFT JOIN $columnConstraintsTableName constraints
               ON (constraints.index_name = index_columns.index_name
-                  $columnConstraintsOwnerCondition)
+                  AND constraints.owner = index_columns.index_owner)
             $indexColumnsOwnerCondition
             ORDER BY index_columns.index_name, index_columns.column_position";
         return $sql;
