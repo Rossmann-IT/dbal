@@ -59,11 +59,6 @@ parameters:
                 - src/Driver/OCI8/Result.php
 
         -
-            message: '~Template type T of method Doctrine\\DBAL\\DriverManager::getConnection\(\) is not referenced in a parameter\.~'
-            paths:
-                - src/DriverManager.ph
-
-        -
             message: '~Method Doctrine\\DBAL\\DriverManager::createDriver\(\) should return Doctrine\\DBAL\\Driver but returns object\.~'
             paths:
                 - src/DriverManager.php
