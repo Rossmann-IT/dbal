@@ -267,17 +267,16 @@ class PostgreSQLPlatform extends AbstractPlatform
 
     /**
      * {@inheritDoc}
+     * information_schema does not show tables which were created by a different user
+     * we want to see all tables in our schema, so we query pg_tables
      */
     public function getListTablesSQL()
     {
-        return "SELECT quote_ident(table_name) AS table_name,
-                       table_schema AS schema_name
-                FROM   information_schema.tables
-                WHERE  table_schema NOT LIKE 'pg\_%'
-                AND    table_schema != 'information_schema'
-                AND    table_name != 'geometry_columns'
-                AND    table_name != 'spatial_ref_sys'
-                AND    table_type != 'VIEW'";
+        return "SELECT quote_ident(tablename) AS table_name,
+                       schemaname AS schema_name
+                FROM   pg_catalog.pg_tables
+                WHERE  schemaname NOT LIKE 'pg\_%'
+                AND    schemaname != 'information_schema'";
     }
 
     /**
@@ -285,11 +284,11 @@ class PostgreSQLPlatform extends AbstractPlatform
      */
     public function getListViewsSQL($database)
     {
-        return 'SELECT quote_ident(table_name) AS viewname,
-                       table_schema AS schemaname,
-                       view_definition AS definition
-                FROM   information_schema.views
-                WHERE  view_definition IS NOT NULL';
+        return 'SELECT quote_ident(viewname) AS viewname,
+                       schemaname,
+                       definition
+                FROM   pg_catalog.pg_views
+                WHERE  definition IS NOT NULL';
     }
 
     /**
