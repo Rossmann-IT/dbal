@@ -424,6 +424,9 @@ class Table extends AbstractAsset
         array $options = [],
         $name = null
     ) {
+        foreach ($foreignColumnNames as $index => $columnName) {
+            $foreignColumnNames[$index] = $this->normalizeIdentifier($columnName);
+        }
         $name ??= $this->_generateIdentifierName(
             array_merge([$this->getName()], $localColumnNames),
             'fk',
