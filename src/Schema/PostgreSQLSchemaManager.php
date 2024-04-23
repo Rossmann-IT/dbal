@@ -616,9 +616,13 @@ SQL;
             $sql .= ' c.relname AS table_name, n.nspname AS schema_name,';
         }
 
+        // @Rossmann-IT: also select a.attidentity to identify IDENTITY columns
+        $sql .= ' a.attidentity,';
+
+        // @Rossmann-IT: replaced the collation selection clause with the correct pre-3.4 code
+
         $sql .= <<<'SQL'
             a.attnum,
-            a.attidentity,
             quote_ident(a.attname) AS field,
             t.typname AS type,
             format_type(a.atttypid, a.atttypmod) AS complete_type,
@@ -655,9 +659,16 @@ SQL;
                         AND d.classid = (SELECT oid FROM pg_class WHERE relname = 'pg_class')
 SQL;
 
+        // @Rossmann-IT: get information about partitioned tables
+        $sql .= <<<'SQL'
+                LEFT JOIN pg_catalog.pg_inherits i 
+			        ON c.oid = i.inhrelid
+SQL;
+
         $conditions = array_merge([
             'a.attnum > 0',
-            "c.relkind = 'r'",
+            "c.relkind IN ('r', 'p')", // @Rossmann-IT: also select partitioned tables (parent tables)
+            "i.inhparent IS NULL", // @Rossmann-IT: ignore child tables of partitioned tables
             'd.refobjid IS NULL',
         ], $this->buildQueryConditions($tableName));
 
