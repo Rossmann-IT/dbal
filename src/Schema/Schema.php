@@ -45,7 +45,7 @@ class Schema extends AbstractAsset
      *
      * @var string[]
      */
-    private array $namespaces = [];
+    protected array $namespaces = [];
 
     /** @var Table[] */
     protected $_tables = [];
@@ -192,7 +192,7 @@ class Schema extends AbstractAsset
     }
 
     /** @param string $name */
-    private function getFullQualifiedAssetName($name): string
+    protected function getFullQualifiedAssetName($name): string
     {
         $name = $this->getUnquotedAssetName($name);
 
@@ -203,7 +203,7 @@ class Schema extends AbstractAsset
         return strtolower($name);
     }
 
-    private function normalizeName(AbstractAsset $asset): string
+    protected function normalizeName(AbstractAsset $asset): string
     {
         return $asset->getFullQualifiedName($this->getName());
     }
@@ -213,7 +213,7 @@ class Schema extends AbstractAsset
      *
      * @param string $assetName Quoted or unquoted representation of an asset name.
      */
-    private function getUnquotedAssetName($assetName): string
+    protected function getUnquotedAssetName($assetName): string
     {
         if ($this->isIdentifierQuoted($assetName)) {
             return $this->trimQuotes($assetName);
