@@ -223,7 +223,7 @@ SQL,
         $length = null;
 
         if (
-            in_array(strtolower($tableColumn['type']), ['varchar', 'bpchar'], true)
+            in_array(strtolower($tableColumn['type']), ['varchar', 'bpchar', 'varbit'], true)
             && preg_match('/\((\d*)\)/', $tableColumn['complete_type'], $matches) === 1
         ) {
             $length = (int) $matches[1];
