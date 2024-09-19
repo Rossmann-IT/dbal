@@ -349,6 +349,10 @@ class Table extends AbstractAsset
         array $options = [],
         ?string $name = null,
     ): self {
+        // @Rossmann-IT: make column names in foreign key definition lowercase
+        foreach ($foreignColumnNames as $index => $columnName) {
+            $foreignColumnNames[$index] = $this->normalizeIdentifier($columnName);
+        }
         $name ??= $this->_generateIdentifierName(
             array_merge([$this->getName()], $localColumnNames),
             'fk',

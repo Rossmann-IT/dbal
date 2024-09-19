@@ -422,7 +422,8 @@ SQL;
             quote_ident(a.attname) AS field,
             t.typname AS type,
             format_type(a.atttypid, a.atttypmod) AS complete_type,
-            (SELECT tc.collcollate FROM pg_catalog.pg_collation tc WHERE tc.oid = a.attcollation) AS collation,
+            (SELECT CASE WHEN tc.collname = 'default' THEN tc.collcollate ELSE tc.collname END
+             FROM pg_catalog.pg_collation tc WHERE tc.oid = a.attcollation) AS collation,
             (SELECT t1.typname FROM pg_catalog.pg_type t1 WHERE t1.oid = t.typbasetype) AS domain_type,
             (SELECT format_type(t2.typbasetype, t2.typtypmod) FROM
               pg_catalog.pg_type t2 WHERE t2.typtype = 'd' AND t2.oid = a.atttypid) AS domain_complete_type,
@@ -451,9 +452,16 @@ SQL;
                         AND d.classid = (SELECT oid FROM pg_class WHERE relname = 'pg_class')
             SQL, $this->platform->getDefaultColumnValueSQLSnippet());
 
+        // @Rossmann-IT: get information about partitioned tables
+        $sql .= <<<'SQL'
+                LEFT JOIN pg_catalog.pg_inherits i 
+			        ON c.oid = i.inhrelid
+SQL;
+
         $conditions = array_merge([
             'a.attnum > 0',
-            "c.relkind = 'r'",
+            "c.relkind IN ('r', 'p')", // @Rossmann-IT: also select partitioned tables (parent tables)
+            "i.inhparent IS NULL", // @Rossmann-IT: ignore child tables of partitioned tables
             'd.refobjid IS NULL',
         ], $this->buildQueryConditions($tableName));
 
