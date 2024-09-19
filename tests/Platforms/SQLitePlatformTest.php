@@ -362,7 +362,8 @@ class SQLitePlatformTest extends AbstractPlatformTestCase
                 . ')',
             'INSERT INTO user ("key", article, comment) SELECT id, article, post FROM __temp__user',
             'DROP TABLE __temp__user',
-            'CREATE INDEX IDX_8D93D64923A0E66 ON user (article)',
+            // @Rossmann-IT: the column "article" is already covered by index1
+            // 'CREATE INDEX IDX_8D93D64923A0E66 ON user (article)',
             'CREATE INDEX IDX_8D93D6495A8A6C8D ON user (comment)',
         ];
 

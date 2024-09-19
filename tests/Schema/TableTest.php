@@ -442,6 +442,8 @@ class TableTest extends TestCase
         $table->addColumn('baz', Types::STRING);
         $table->addColumn('bloo', Types::STRING);
         $table->addIndex(['baz', 'bar'], 'composite_idx');
+        // @Rossmann-IT: the following index already covers the foreign key columns,
+        // dbal MUST NOT create an index on ['bar', 'baz']
         $table->addIndex(['bar', 'baz', 'bloo'], 'full_idx');
 
         $foreignTable = new Table('bar');
@@ -450,13 +452,14 @@ class TableTest extends TestCase
 
         $table->addForeignKeyConstraint($foreignTable->getName(), ['bar', 'baz'], ['foo', 'baz']);
 
-        self::assertCount(3, $table->getIndexes());
+        // @Rossmann-IT: fixed expected count from 3 to 2
+        self::assertCount(2, $table->getIndexes());
         self::assertTrue($table->hasIndex('composite_idx'));
         self::assertTrue($table->hasIndex('full_idx'));
-        self::assertTrue($table->hasIndex('idx_8c73652176ff8caa78240498'));
+        self::assertFalse($table->hasIndex('idx_8c73652176ff8caa78240498')); // @Rossmann-IT: fixed true -> false
         self::assertSame(['baz', 'bar'], $table->getIndex('composite_idx')->getColumns());
         self::assertSame(['bar', 'baz', 'bloo'], $table->getIndex('full_idx')->getColumns());
-        self::assertSame(['bar', 'baz'], $table->getIndex('idx_8c73652176ff8caa78240498')->getColumns());
+        // self::assertSame(['bar', 'baz'], $table->getIndex('idx_8c73652176ff8caa78240498')->getColumns()); // @Rossmann-IT: No!
     }
 
     public function testOverrulingIndexDoesNotDropOverruledIndex(): void
