@@ -1,5 +1,24 @@
 # Doctrine DBAL
 
+## Why does this fork exist?
+
+At Rossmann, our goal is 100% compatibility with all features of recent Postgresql versions.
+We make doctrine/dbal compatible with all Postgres features that we actually use,
+contributions for other features are welcome.
+Code for other DBMS is not touched in this fork.
+
+We strongly believe that open source software should be easily extensible without
+the need to fork it. Unfortunately, the people at doctrine have an entirely different
+philosophy and make heavy use of _final_ classes and _private_ properties and methods.
+
+In this fork, every _final_ keyword is removed and wherever favorable, _private_ properties
+and methods are made _protected_.
+
+N.B. To this day we have not found one single line in the whole codebase,
+where it would have been **necessary** for anything to be _final_ or _private_. 
+
+## Original Readme:
+
 |                   [5.0-dev][5.0]                    |                   [4.2-dev][4.2]                    |                     [4.1][4.1]                      |                     [3.9][3.9]                      |
 |:---------------------------------------------------:|:---------------------------------------------------:|:---------------------------------------------------:|:---------------------------------------------------:|
 |      [![GitHub Actions][GA 5.0 image]][GA 5.0]      |      [![GitHub Actions][GA 4.2 image]][GA 4.2]      |      [![GitHub Actions][GA 4.1 image]][GA 4.1]      |      [![GitHub Actions][GA 3.9 image]][GA 3.9]      |
