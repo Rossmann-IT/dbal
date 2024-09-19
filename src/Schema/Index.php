@@ -178,6 +178,8 @@ class Index extends AbstractAsset
         // allow the other index to be equally large only. It being larger is an option
         // but it creates a problem with scenarios of the kind PRIMARY KEY(foo,bar) UNIQUE(foo)
         // @Rossmann-IT: fix Bug which causes indexes not to be properly recognized
+        // @Rossmann-IT: if an ordinary, longer index with an identical definition of the first column(s) exists,
+        // @Rossmann-IT: it fulfills the needs of this index.
         if (($this->isUnique() || $this->isPrimary()) && count($other->getColumns()) !== count($this->getColumns())) {
             return false;
         }

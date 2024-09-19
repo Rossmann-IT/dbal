@@ -183,7 +183,7 @@ class Schema extends AbstractAsset
      *
      * Every non-namespaced element is prefixed with this schema name.
      */
-    private function normalizeName(AbstractAsset $asset): string
+    protected function normalizeName(AbstractAsset $asset): string
     {
         $name = $asset->getName();
 

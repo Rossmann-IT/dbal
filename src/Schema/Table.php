@@ -724,7 +724,7 @@ class Table extends AbstractAsset
      *
      * Trims quotes and lowercases the given identifier.
      */
-    private function normalizeIdentifier(?string $identifier): string
+    protected function normalizeIdentifier(?string $identifier): string
     {
         if ($identifier === null) {
             return '';
