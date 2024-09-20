@@ -435,7 +435,7 @@ SQL;
               pg_catalog.pg_type t2 WHERE t2.typtype = 'd' AND t2.oid = a.atttypid) AS domain_complete_type,
             a.attnotnull AS isnotnull,
             a.attidentity,
-            a.attgenerated,
+            a.attgenerated AS generated,
             (SELECT 't'
              FROM pg_index
              WHERE c.oid = pg_index.indrelid
