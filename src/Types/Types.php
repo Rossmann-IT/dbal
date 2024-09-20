@@ -12,6 +12,7 @@ final class Types
     public const ASCII_STRING         = 'ascii_string';
     public const BIGINT               = 'bigint';
     public const BINARY               = 'binary';
+    public const BIT_VARYING          = 'bit_varying';
     public const BLOB                 = 'blob';
     public const BOOLEAN              = 'boolean';
     public const DATE_MUTABLE         = 'date';

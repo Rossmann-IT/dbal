@@ -24,6 +24,7 @@ abstract class Type
         Types::ASCII_STRING         => AsciiStringType::class,
         Types::BIGINT               => BigIntType::class,
         Types::BINARY               => BinaryType::class,
+        Types::BIT_VARYING          => BitVaryingType::class,
         Types::BLOB                 => BlobType::class,
         Types::BOOLEAN              => BooleanType::class,
         Types::DATE_MUTABLE         => DateType::class,
