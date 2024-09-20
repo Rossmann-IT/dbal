@@ -231,6 +231,8 @@ SQL,
 
         $autoincrement = $tableColumn['attidentity'] === 'd';
 
+        $generated = $tableColumn['generated'] === 's';
+
         $matches = [];
 
         assert(array_key_exists('default', $tableColumn));
@@ -373,6 +375,10 @@ SQL,
             $column->setPlatformOption('collation', $tableColumn['collation']);
         }
 
+        if ($generated) {
+            $column->setPlatformOption('generated', $generated);
+        }
+
         if ($column->getType() instanceof JsonType) {
             $column->setPlatformOption('jsonb', $jsonb);
         }
@@ -429,6 +435,7 @@ SQL;
               pg_catalog.pg_type t2 WHERE t2.typtype = 'd' AND t2.oid = a.atttypid) AS domain_complete_type,
             a.attnotnull AS isnotnull,
             a.attidentity,
+            a.attgenerated,
             (SELECT 't'
              FROM pg_index
              WHERE c.oid = pg_index.indrelid
