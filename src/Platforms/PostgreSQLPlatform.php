@@ -35,6 +35,7 @@ use function trim;
 /**
  * Provides the behavior, features and SQL dialect of the PostgreSQL database platform
  * of the oldest supported version.
+ * Rossmann-IT: we only care about Postgres 13 and newer
  */
 class PostgreSQLPlatform extends AbstractPlatform
 {
@@ -785,5 +786,38 @@ class PostgreSQLPlatform extends AbstractPlatform
     public function createSchemaManager(Connection $connection): PostgreSQLSchemaManager
     {
         return new PostgreSQLSchemaManager($connection, $this);
+    }
+
+    /**
+     * Rossmann-IT: support for partitioned tables
+     *
+     * @param int            $oid              oid of a partitioned table
+     * @param string[]|int[] $attributeNumbers from pg_catalog.pg_partitioned_table.partattrs
+     */
+    public function getAttributesSql(int $oid, array $attributeNumbers): string
+    {
+        return "SELECT UPPER(attname) 
+                FROM pg_catalog.pg_attribute
+                INNER JOIN unnest('{" . implode(',', $attributeNumbers) . "}'::int[])
+                   WITH ORDINALITY t(attnum, ord) USING (attnum)
+                WHERE attrelid = $oid
+                ORDER BY t.ord";
+    }
+
+    /**
+     * Rossmann-IT: support for partitioned tables
+     * retrieves oid, name, columns serving as partitioning key, form of partitioning (range/list)
+     * and the number of partitions the table currently has
+     * for all partitioned tables
+     */
+    public function getPartitionedTablesAttributesSql(): string
+    {
+        return "SELECT c.oid, c.relname, p.partattrs, p.partstrat, count(i.inhrelid) as partition_count
+            FROM pg_catalog.pg_class AS c
+                INNER JOIN pg_namespace n ON n.oid = c.relnamespace
+                INNER JOIN pg_catalog.pg_partitioned_table AS p ON c.oid = p.partrelid
+                LEFT JOIN pg_catalog.pg_inherits AS i ON c.oid = i.inhparent
+            WHERE c.relkind = 'p'
+            GROUP BY c.oid, c.relname, p.partstrat, p.partattrs";
     }
 }

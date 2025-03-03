@@ -11,6 +11,7 @@ use Doctrine\DBAL\Types\JsonType;
 use Doctrine\DBAL\Types\Type;
 
 use function array_change_key_case;
+use function array_column;
 use function array_key_exists;
 use function array_map;
 use function array_merge;
@@ -231,8 +232,6 @@ SQL,
 
         $autoincrement = $tableColumn['attidentity'] === 'd';
 
-        $generated = $tableColumn['generated'] === 's';
-
         $matches = [];
 
         assert(array_key_exists('default', $tableColumn));
@@ -375,8 +374,9 @@ SQL,
             $column->setPlatformOption('collation', $tableColumn['collation']);
         }
 
-        if ($generated) {
-            $column->setPlatformOption('generated', $generated);
+        // Rossmann-IT: support for generated columns
+        if ($tableColumn['generated'] === 's') {
+            $column->setPlatformOption('generated', $tableColumn['generated']);
         }
 
         if ($column->getType() instanceof JsonType) {
@@ -459,7 +459,7 @@ SQL;
                         AND d.classid = (SELECT oid FROM pg_class WHERE relname = 'pg_class')
             SQL, $this->platform->getDefaultColumnValueSQLSnippet());
 
-        // @Rossmann-IT: get information about partitioned tables
+        // Rossmann-IT: get information about partitioned tables
         $sql .= <<<'SQL'
                 LEFT JOIN pg_catalog.pg_inherits i 
 			        ON c.oid = i.inhrelid
@@ -467,8 +467,8 @@ SQL;
 
         $conditions = array_merge([
             'a.attnum > 0',
-            "c.relkind IN ('r', 'p')", // @Rossmann-IT: also select partitioned tables (parent tables)
-            "i.inhparent IS NULL", // @Rossmann-IT: ignore child tables of partitioned tables
+            "c.relkind IN ('r', 'p')", // Rossmann-IT: also select partitioned tables (parent tables)
+            'i.inhparent IS NULL', // Rossmann-IT: ignore child tables of partitioned tables
             'd.refobjid IS NULL',
         ], $this->buildQueryConditions($tableName));
 
@@ -552,11 +552,21 @@ FROM pg_class c
          ON n.oid = c.relnamespace
 SQL;
 
-        $conditions = array_merge(["c.relkind = 'r'"], $this->buildQueryConditions($tableName));
+        // This method also fetches options of child tables (partitions), but those are filtered out
+        // in selectTableColumns() so that we do not have to care about filtering here
+        $conditions = array_merge(["c.relkind IN ('r', 'p')"], $this->buildQueryConditions($tableName));
 
         $sql .= ' WHERE ' . implode(' AND ', $conditions);
 
-        return $this->connection->fetchAllAssociativeIndexed($sql);
+        $options = $this->connection->fetchAllAssociativeIndexed($sql);
+
+        $partitionedTables = $this->fetchPartitionedTablesOptions($tableName);
+
+        foreach ($partitionedTables as $relname => $partitionedTableOptions) {
+            $options[$relname]['partitioned'] = $partitionedTableOptions;
+        }
+
+        return $options;
     }
 
     /** @return list<string> */
@@ -579,5 +589,53 @@ SQL;
         $conditions[] = "n.nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast')";
 
         return $conditions;
+    }
+
+    /**
+     * Rossmann-IT: support for partitioned tables
+     *
+     * @return array<string,array<string,mixed>>
+     *
+     * @throws Exception
+     */
+    protected function fetchPartitionedTablesOptions(?string $tableName = null): array
+    {
+        /** @var PostgreSqlPlatform $platform */
+        $platform = $this->platform;
+        // retrieves oid, name, columns serving as partitioning key, form of partitioning (range/list)
+        // and the number of partitions the table currently has for all partitioned tables
+        $conditions        = array_merge(["c.relkind = 'p'"], $this->buildQueryConditions($tableName));
+        $partitionsQuery   = 'SELECT c.oid, c.relname, p.partattrs, p.partstrat, count(i.inhrelid) as partition_count
+            FROM pg_catalog.pg_class AS c
+                INNER JOIN pg_namespace n ON n.oid = c.relnamespace
+                INNER JOIN pg_catalog.pg_partitioned_table AS p ON c.oid = p.partrelid
+                LEFT JOIN pg_catalog.pg_inherits AS i ON c.oid = i.inhparent
+            WHERE ' . implode(' AND ', $conditions) . '
+            GROUP BY c.oid, c.relname, p.partstrat, p.partattrs';
+        $partitionedTables = $this->connection->fetchAllAssociative($partitionsQuery);
+
+        $partitionedTablesOptions = [];
+        foreach ($partitionedTables as $partitionedTable) {
+            // @see https://www.postgresql.org/docs/current/catalog-pg-partitioned-table.html
+            // partattrs int2vector (references pg_attribute.attnum) is an array of values that indicate which table
+            // columns are part of the partition key. For example, a value of 1 3 would mean that the first and
+            // the third table columns make up the partition key. A zero in this array indicates that the corresponding
+            // partition key column is an expression, rather than a simple column reference.
+            $columnNumbers = explode(' ', $partitionedTable['partattrs']);
+
+            // the order of attributes is important but is lost if not fetched individually
+            // an attribute is a partitioning key (a column whose values are used for assigning a row to a partition)
+            $attributesQuery = $platform->getAttributesSql($partitionedTable['oid'], $columnNumbers);
+            $attributes      = $this->connection->fetchAllNumeric($attributesQuery);
+
+            $columns = array_column($attributes, 0);
+
+            $partitionedTablesOptions[$partitionedTable['relname']] = [
+                $partitionedTable['partstrat'] => '(' . implode(', ', $columns) . ')',
+                'partition_count' => $partitionedTable['partition_count'],
+            ];
+        }
+
+        return $partitionedTablesOptions;
     }
 }
