@@ -15,8 +15,10 @@ use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 
 /** @extends AbstractPlatformTestCase<DB2Platform> */
+#[RequiresPhpExtension('ibm_db2')]
 class DB2PlatformTest extends AbstractPlatformTestCase
 {
     public function createPlatform(): AbstractPlatform

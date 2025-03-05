@@ -18,9 +18,11 @@ use Doctrine\DBAL\TransactionIsolationLevel;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 
+use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use function implode;
 
 /** @extends AbstractPlatformTestCase<SQLitePlatform> */
+#[RequiresPhpExtension('sqlite')]
 class SQLitePlatformTest extends AbstractPlatformTestCase
 {
     public function createPlatform(): AbstractPlatform

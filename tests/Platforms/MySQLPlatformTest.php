@@ -10,7 +10,9 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\TransactionIsolationLevel;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
+use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 
+#[RequiresPhpExtension('mysqli')]
 class MySQLPlatformTest extends AbstractMySQLPlatformTestCase
 {
     use VerifyDeprecations;

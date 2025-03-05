@@ -7,7 +7,9 @@ namespace Doctrine\DBAL\Tests\Platforms;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Doctrine\DBAL\Types\Types;
+use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 
+#[RequiresPhpExtension('mysqli')]
 class MariaDBPlatformTest extends AbstractMySQLPlatformTestCase
 {
     public function createPlatform(): AbstractPlatform

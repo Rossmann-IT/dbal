@@ -16,11 +16,13 @@ use Doctrine\DBAL\TransactionIsolationLevel;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use UnexpectedValueException;
 
 use function sprintf;
 
 /** @extends AbstractPlatformTestCase<PostgreSQLPlatform> */
+#[RequiresPhpExtension('pdo_pgsql')]
 class PostgreSQLPlatformTest extends AbstractPlatformTestCase
 {
     public function createPlatform(): AbstractPlatform

@@ -33,6 +33,11 @@ abstract class AbstractDriverTestCase extends FunctionalTestCase
     public function testReturnsDatabaseNameWithoutDatabaseNameParameter(): void
     {
         $params = $this->connection->getParams();
+        if ($params['driver'] == 'pdo_pgsql') {
+            // rossmann-it: it is discouraged to connect to a Postgres server without specifying a database
+            $this->expectNotToPerformAssertions();
+            return;
+        }
         unset($params['dbname']);
 
         $connection = new Connection(

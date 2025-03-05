@@ -6,7 +6,9 @@ namespace Doctrine\DBAL\Tests\Platforms;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\MySQL84Platform;
+use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 
+#[RequiresPhpExtension('mysqli')]
 class MySQL84PlatformTest extends MySQLPlatformTest
 {
     public function createPlatform(): AbstractPlatform

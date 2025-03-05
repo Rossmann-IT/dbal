@@ -17,11 +17,13 @@ use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use PHPUnit\Framework\Attributes\DataProvider;
 
+use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use function sprintf;
 use function strtoupper;
 use function uniqid;
 
 /** @extends AbstractPlatformTestCase<OraclePlatform> */
+#[RequiresPhpExtension('oci8')]
 class OraclePlatformTest extends AbstractPlatformTestCase
 {
     public function createPlatform(): AbstractPlatform
